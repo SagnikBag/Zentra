@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    Fullname:{
+    fullname:{
         type: String,
         required: true
     },

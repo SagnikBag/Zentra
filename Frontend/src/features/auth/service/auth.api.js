@@ -16,4 +16,7 @@ export async function register({ email, contact, password, fullname, isSeller })
         isSeller
     })
     return response.data
+
+    console.log(response.data);
+
 }

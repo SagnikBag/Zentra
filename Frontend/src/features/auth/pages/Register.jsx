@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { register } from "../service/auth.api";
+import { useAuth } from '../hooks/useAuth'
 
 export function Register() {
+
+  const { handleRegister } = useAuth()
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullname: "",
@@ -50,6 +53,20 @@ export function Register() {
       setLoading(false);
     }
   };
+
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   await handleRegister({
+  //     email: formData.email,
+  //     password: formData.password,
+  //     fullname: formData.fullname,
+  //     isSeller: formData.isSeller,
+  //     contact: formData.contact
+
+  //   })
+  //   setLoading(false);
+  //   navigate("/")
+  // }
 
   return (
     <div className="min-h-screen bg-[#0c1324] text-[#dce1fb] font-sans antialiased flex overflow-hidden">
@@ -161,8 +178,8 @@ export function Register() {
               {status.message && (
                 <div
                   className={`p-4 rounded-xl text-xs md:text-sm border ${status.type === "success"
-                      ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
-                      : "bg-rose-950/40 border-rose-500/30 text-rose-400"
+                    ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
+                    : "bg-rose-950/40 border-rose-500/30 text-rose-400"
                     } transition-all duration-300`}
                 >
                   {status.message}
