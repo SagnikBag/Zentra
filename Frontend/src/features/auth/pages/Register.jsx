@@ -284,7 +284,12 @@ export function Register() {
                   />
                   <div className="w-10 h-5.5 bg-[#2e3447] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#dce1fb] after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-[#f59e0b] peer-checked:after:bg-[#0c1324]"></div>
                 </label>
+
               </div>
+
+              <a href="/api/auth/google"
+                className="text-sm font-medium text-white border border-[#2e3447]/40px-5 rounded-xl"
+              >continue with google</a>
 
               {/* Submit Button */}
               <button

@@ -15,6 +15,8 @@ export function Login() {
         setFormData((prev) => ({ ...prev, [id]: value }));
     };
 
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -96,8 +98,8 @@ export function Login() {
                             {status.message && (
                                 <div
                                     className={`p-4 rounded-xl text-xs md:text-sm border ${status.type === "success"
-                                            ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
-                                            : "bg-rose-950/40 border-rose-500/30 text-rose-400"
+                                        ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
+                                        : "bg-rose-950/40 border-rose-500/30 text-rose-400"
                                         } transition-all duration-300`}
                                 >
                                     {status.message}
