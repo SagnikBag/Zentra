@@ -27,46 +27,46 @@ export function Register() {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setStatus({ type: "", message: "" });
-
-    try {
-      const response = await register(formData);
-      setStatus({
-        type: "success",
-        message: response.message || "Account created successfully! Welcome to Zentra.",
-      });
-      setTimeout(() => {
-        navigate("/");
-      }, 2000);
-    } catch (err) {
-      console.error(err);
-      setStatus({
-        type: "error",
-        message:
-          err.response?.data?.message ||
-          "Registration failed. Please check details and try again.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // const handleSubmit = async (e) => {
   //   e.preventDefault();
-  //   await handleRegister({
-  //     email: formData.email,
-  //     password: formData.password,
-  //     fullname: formData.fullname,
-  //     isSeller: formData.isSeller,
-  //     contact: formData.contact
+  //   setLoading(true);
+  //   setStatus({ type: "", message: "" });
 
-  //   })
-  //   setLoading(false);
-  //   navigate("/")
-  // }
+  //   try {
+  //     const response = await register(formData);
+  //     setStatus({
+  //       type: "success",
+  //       message: response.message || "Account created successfully! Welcome to Zentra.",
+  //     });
+  //     setTimeout(() => {
+  //       navigate("/");
+  //     }, 2000);
+  //   } catch (err) {
+  //     console.error(err);
+  //     setStatus({
+  //       type: "error",
+  //       message:
+  //         err.response?.data?.message ||
+  //         "Registration failed. Please check details and try again.",
+  //     });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await handleRegister({
+      email: formData.email,
+      password: formData.password,
+      fullname: formData.fullname,
+      isSeller: formData.isSeller,
+      contact: formData.contact
+
+    })
+    setLoading(false);
+    navigate("/")
+  }
 
   return (
     <div className="min-h-screen bg-[#0c1324] text-[#dce1fb] font-sans antialiased flex overflow-hidden">
