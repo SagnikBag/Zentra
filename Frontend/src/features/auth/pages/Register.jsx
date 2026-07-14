@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { register } from "../service/auth.api";
 import { useAuth } from '../hooks/useAuth'
+import ContineuWithGoolge from "../components/ContineuWithGoolge";
 
 export function Register() {
 
@@ -287,9 +288,6 @@ export function Register() {
 
               </div>
 
-              <a href="/api/auth/google"
-                className="text-sm font-medium text-white border border-[#2e3447]/40px-5 rounded-xl"
-              >continue with google</a>
 
               {/* Submit Button */}
               <button
@@ -299,6 +297,7 @@ export function Register() {
               >
                 {loading ? "Initializing Profile..." : "Create Exclusive Account"}
               </button>
+              <ContineuWithGoolge />
             </form>
 
             <div className="text-center mt-5">

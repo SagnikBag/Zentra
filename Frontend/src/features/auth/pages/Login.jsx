@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
+import ContineuWithGoolge from "../components/ContineuWithGoolge";
 
 export function Login() {
     const { handleLogin } = useAuth();
@@ -164,6 +165,7 @@ export function Login() {
                             >
                                 {loading ? "Signing in..." : "Sign In"}
                             </button>
+                            <ContineuWithGoolge />
                         </form>
                         <div className="text-center mt-5">
                             <p className="text-[#a08e7a] text-xs">
