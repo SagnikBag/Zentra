@@ -11,4 +11,5 @@ export async function uploadFile({buffer,fileName,folder = "zentra"}){
         fileName,
         folder
     })
+    return result
 }

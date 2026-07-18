@@ -1,5 +1,5 @@
 import productModel from '../model/product.model.js'
-import { uploadFile } from '../setvisces/storage.service.js';
+import { uploadFile } from '../services/storage.service.js';
 
 
 export async function createProduct(req,res){
@@ -13,14 +13,17 @@ export async function createProduct(req,res){
             buffer:file.buffer,
             fileName :file.originalname
         })
+        console.log("uploaded image", uploaded);
+        
     }))
+    console.log(req.files);
 
     const product = await productModel.create({
         title,
         description,
         price:{
             amount:priceAmount,
-            currencey: priceCurrency || "INR"
+            currency: priceCurrency || "INR"
         },
         images,
         seller: seller._id
@@ -32,4 +35,16 @@ export async function createProduct(req,res){
         product
     })
 
+}
+export async function getSellerProducts(req,res){
+    const seller = req.user
+
+    const products = await productModel.find({seller: seller._id})
+
+
+    res.status(200).json({
+        message:"Products fetched successfully",
+        success: true,
+        products
+    })
 }
