@@ -25,7 +25,7 @@ export function Login() {
         try {
             await handleLogin({ email: formData.email, password: formData.password });
             setStatus({ type: "success", message: "Logged in successfully!" });
-            setTimeout(() => navigate("/"), 1500);
+            setTimeout(() => navigate("/seller/create-product"), 1500);
         } catch (err) {
             console.error(err);
             setStatus({ type: "error", message: err.response?.data?.message || "Login failed. Please try again." });

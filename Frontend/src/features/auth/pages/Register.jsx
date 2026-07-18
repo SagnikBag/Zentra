@@ -66,7 +66,7 @@ export function Register() {
 
     })
     setLoading(false);
-    navigate("/")
+    navigate("/login")
   }
 
   return (
