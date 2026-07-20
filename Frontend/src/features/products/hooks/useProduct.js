@@ -9,7 +9,7 @@ export const userProduct = () => {
     }
     async function handleGetSellerProduct() {
         const data = await getSellerProducts();
-        dispatch(setSellerProducts(data.product));
+        dispatch(setSellerProducts(data.products));
         return data.products
     }
     return {

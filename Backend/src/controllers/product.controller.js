@@ -7,6 +7,8 @@ export async function createProduct(req,res){
     const {title,description,priceAmount,priceCurrency} = req.body;
      console.log(req.body)
     const seller = req.user;
+     
+// createProduct
 
     const images = await Promise.all(req.files.map(async(file)=>{
         return await uploadFile({
@@ -28,7 +30,7 @@ export async function createProduct(req,res){
         images,
         seller: seller._id
     })
-
+    console.log(product);
     res.status(201).json({
         message:"Product created successfully",
         success:true,
@@ -38,6 +40,9 @@ export async function createProduct(req,res){
 }
 export async function getSellerProducts(req,res){
     const seller = req.user
+
+
+// getSellerProducts
 
     const products = await productModel.find({seller: seller._id})
 
