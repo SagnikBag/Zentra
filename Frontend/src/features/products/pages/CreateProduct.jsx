@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { userProduct } from "../hooks/useProduct";
 export function CreateProduct() {
     const { handleCreateProduct } = userProduct();
@@ -89,7 +89,7 @@ export function CreateProduct() {
                 message: "Product created successfully!",
             });
             setTimeout(() => {
-                navigate("/");
+                navigate("/seller/dashboard");
             }, 1500);
         } catch (err) {
             console.error(err);
@@ -113,24 +113,18 @@ export function CreateProduct() {
                         ZENTRA
                     </div>
                     <nav className="hidden md:flex gap-6 items-center">
-                        <a
-                            href="#"
+                        <Link
+                            to="/seller/dashboard"
                             className="text-[#a08e7a] hover:text-[#f59e0b] transition-colors duration-300 font-['JetBrains_Mono'] text-xs font-medium tracking-[0.05em] uppercase"
                         >
                             DASHBOARD
-                        </a>
-                        <a
-                            href="#"
-                            className="text-[#a08e7a] hover:text-[#f59e0b] transition-colors duration-300 font-['JetBrains_Mono'] text-xs font-medium tracking-[0.05em] uppercase"
-                        >
-                            PRODUCTS
-                        </a>
-                        <a
-                            href="#"
+                        </Link>
+                        <Link
+                            to="/seller/create-product"
                             className="text-[#f59e0b] font-bold font-['JetBrains_Mono'] text-xs tracking-[0.05em] uppercase"
                         >
                             LIST ITEM
-                        </a>
+                        </Link>
                     </nav>
                 </div>
             </header>
