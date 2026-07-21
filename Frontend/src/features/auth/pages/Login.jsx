@@ -30,7 +30,7 @@ export function Login() {
                     navigate('/')
                 }
                 else if (user.role == 'seller') {
-                    console.log('in seller')
+
                     navigate('/seller/dashboard')
                 }
             }, 1500);

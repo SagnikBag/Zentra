@@ -31,7 +31,9 @@ export const routes = createBrowserRouter([
             },
             {
                 path: '/seller/dashboard',
-                element: <Protected role="seller"><Dashboard /></Protected>
+                element: <Protected role="seller">
+                    <Dashboard />
+                </Protected>
             }
         ]
     }
