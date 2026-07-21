@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router";
 import { userProduct } from "../hooks/useProduct";
+
+
 export function CreateProduct() {
     const { handleCreateProduct } = userProduct();
     const navigate = useNavigate();
@@ -149,8 +151,8 @@ export function CreateProduct() {
                             {status.message && (
                                 <div
                                     className={`p-4 rounded-lg text-sm border transition-all duration-300 ${status.type === "success"
-                                            ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
-                                            : "bg-rose-950/40 border-rose-500/30 text-rose-400"
+                                        ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
+                                        : "bg-rose-950/40 border-rose-500/30 text-rose-400"
                                         }`}
                                 >
                                     {status.message}
@@ -161,8 +163,8 @@ export function CreateProduct() {
                                 <label
                                     htmlFor="title"
                                     className={`font-['JetBrains_Mono'] text-xs font-medium tracking-[0.05em] uppercase transition-colors duration-200 ${focusedField === "title"
-                                            ? "text-[#ffc174]"
-                                            : "text-[#a08e7a]"
+                                        ? "text-[#ffc174]"
+                                        : "text-[#a08e7a]"
                                         }`}
                                 >
                                     Product Title
@@ -184,8 +186,8 @@ export function CreateProduct() {
                                 <label
                                     htmlFor="description"
                                     className={`font-['JetBrains_Mono'] text-xs font-medium tracking-[0.05em] uppercase transition-colors duration-200 ${focusedField === "description"
-                                            ? "text-[#ffc174]"
-                                            : "text-[#a08e7a]"
+                                        ? "text-[#ffc174]"
+                                        : "text-[#a08e7a]"
                                         }`}
                                 >
                                     Description
@@ -208,8 +210,8 @@ export function CreateProduct() {
                                     <label
                                         htmlFor="priceAmount"
                                         className={`font-['JetBrains_Mono'] text-xs font-medium tracking-[0.05em] uppercase transition-colors duration-200 ${focusedField === "priceAmount"
-                                                ? "text-[#ffc174]"
-                                                : "text-[#a08e7a]"
+                                            ? "text-[#ffc174]"
+                                            : "text-[#a08e7a]"
                                             }`}
                                     >
                                         Price Amount
@@ -232,8 +234,8 @@ export function CreateProduct() {
                                     <label
                                         htmlFor="priceCurrency"
                                         className={`font-['JetBrains_Mono'] text-xs font-medium tracking-[0.05em] uppercase transition-colors duration-200 ${focusedField === "priceCurrency"
-                                                ? "text-[#ffc174]"
-                                                : "text-[#a08e7a]"
+                                            ? "text-[#ffc174]"
+                                            : "text-[#a08e7a]"
                                             }`}
                                     >
                                         Currency
@@ -265,8 +267,8 @@ export function CreateProduct() {
                                     onDragLeave={handleDragLeave}
                                     onDrop={handleDrop}
                                     className={`group relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 cursor-pointer ${isDragging
-                                            ? "border-[#ffc174] bg-[#ffc174]/5"
-                                            : "border-[#2e3447] hover:border-[#ffc174]/50 bg-[#151b2d]/30"
+                                        ? "border-[#ffc174] bg-[#ffc174]/5"
+                                        : "border-[#2e3447] hover:border-[#ffc174]/50 bg-[#151b2d]/30"
                                         } ${images.length >= MAX_IMAGES
                                             ? "opacity-40 pointer-events-none"
                                             : ""
@@ -284,8 +286,8 @@ export function CreateProduct() {
                                         {/* Upload Icon */}
                                         <svg
                                             className={`w-10 h-10 transition-transform duration-200 ${isDragging
-                                                    ? "text-[#ffc174] -translate-y-1"
-                                                    : "text-[#ffc174] group-hover:-translate-y-1"
+                                                ? "text-[#ffc174] -translate-y-1"
+                                                : "text-[#ffc174] group-hover:-translate-y-1"
                                                 }`}
                                             fill="none"
                                             viewBox="0 0 24 24"

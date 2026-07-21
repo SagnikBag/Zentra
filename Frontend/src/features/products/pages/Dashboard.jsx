@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router';
 import { userProduct } from '../hooks/useProduct';
 
-export default function Dashboard() {
+export function Dashboard() {
     const { handleGetSellerProduct } = userProduct();
     const rawSellerProducts = useSelector(state => state.product.sellerProducts);
 
@@ -652,8 +652,8 @@ export default function Dashboard() {
                                                     key={img._id || idx}
                                                     onClick={() => setSelectedImageIndex(idx)}
                                                     className={`w-14 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0 cursor-pointer transition-all ${selectedImageIndex === idx
-                                                            ? 'border-[#f59e0b] opacity-100 scale-105'
-                                                            : 'border-[#2e3447] opacity-60 hover:opacity-100'
+                                                        ? 'border-[#f59e0b] opacity-100 scale-105'
+                                                        : 'border-[#2e3447] opacity-60 hover:opacity-100'
                                                         }`}
                                                 >
                                                     <img src={img.url} alt="" className="w-full h-full object-cover" />

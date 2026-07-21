@@ -20,8 +20,6 @@ export async function register({ email, contact, password, fullname, isSeller })
 
 
 }
-
-
 export async function login({ email, password }) {
     const response = await authApiInstance.post('/login', {
         email,
@@ -35,3 +33,8 @@ export async function login({ email, password }) {
 
 
 }
+export async function getme() {
+    const response = await authApiInstance.get('/me')
+
+    return response.data
+} 

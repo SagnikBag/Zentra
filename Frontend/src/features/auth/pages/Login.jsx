@@ -23,9 +23,19 @@ export function Login() {
         setLoading(true);
         setStatus({ type: "", message: "" });
         try {
-            await handleLogin({ email: formData.email, password: formData.password });
+            const user = await handleLogin({ email: formData.email, password: formData.password });
             setStatus({ type: "success", message: "Logged in successfully!" });
-            setTimeout(() => navigate("/seller/create-product"), 1500);
+            setTimeout(() => {
+                if (user.role == "buyer") {
+                    navigate('/')
+                }
+                else if (user.role == 'seller') {
+                    console.log('in seller')
+                    navigate('/seller/dashboard')
+                }
+            }, 1500);
+
+
         } catch (err) {
             console.error(err);
             setStatus({ type: "error", message: err.response?.data?.message || "Login failed. Please try again." });

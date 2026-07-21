@@ -1,7 +1,8 @@
 import {Router} from "express";
 import { validateLoginUser, validateRegisterUser } from "../validator/auth.validator.js";
-import { register,login, googleCallback } from "../controllers/auth.controller.js";
+import { register,login, googleCallback, getMe } from "../controllers/auth.controller.js";
 import passport from "passport";
+import { authenticateUser } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
@@ -9,6 +10,8 @@ router.post('/register',validateRegisterUser,register)
 
 router.post('/login',validateLoginUser,login);
 
+
+// @route api/auth/google
 router.get("/google",
      passport.authenticate("google",{scope:["profile","email"]}))
 
@@ -19,4 +22,6 @@ router.get('/google/callback',
     }),
     googleCallback
 )
+
+router.get('/me',authenticateUser,getMe)
 export default router;
