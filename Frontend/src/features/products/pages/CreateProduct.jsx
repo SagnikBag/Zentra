@@ -1,10 +1,10 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router";
-import { userProduct } from "../hooks/useProduct";
+import { useProduct } from "../hooks/useProduct";
 
 
 export function CreateProduct() {
-    const { handleCreateProduct } = userProduct();
+    const { handleCreateProduct } = useProduct();
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
     const [formData, setFormData] = useState({

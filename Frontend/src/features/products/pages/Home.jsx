@@ -2,10 +2,24 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router';
 import { useProduct } from '../hooks/useProduct';
+import { useAuth } from '../../auth/hooks/useAuth';
 
-export function Dashboard() {
-    const { handleGetSellerProduct } = useProduct();
-    const rawSellerProducts = useSelector(state => state.product.sellerProducts);
+const Home = () => {
+    const { handleGetAllProducts } = useProduct();
+    const { handleLogout } = useAuth();
+    const navigate = useNavigate();
+
+    const rawUser = useSelector(state => state.auth.user);
+    const user = useMemo(() => {
+        return rawUser?.user ? rawUser.user : rawUser;
+    }, [rawUser]);
+
+    const rawProducts = useSelector(state => state.product.products);
+    const products = useMemo(() => {
+        if (Array.isArray(rawProducts)) return rawProducts;
+        if (rawProducts && Array.isArray(rawProducts.products)) return rawProducts.products;
+        return [];
+    }, [rawProducts]);
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -16,23 +30,14 @@ export function Dashboard() {
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const [copiedId, setCopiedId] = useState(null);
 
-    const navigate = useNavigate();
-
-    // Safely parse seller products array from Redux state
-    const products = useMemo(() => {
-        if (Array.isArray(rawSellerProducts)) return rawSellerProducts;
-        if (rawSellerProducts && Array.isArray(rawSellerProducts.products)) return rawSellerProducts.products;
-        return [];
-    }, [rawSellerProducts]);
-
     const fetchProducts = async (isManual = false) => {
         if (isManual) setRefreshing(true);
         else setLoading(true);
 
         try {
-            await handleGetSellerProduct();
+            await handleGetAllProducts();
         } catch (err) {
-            console.error("Failed to fetch seller products:", err);
+            console.error("Failed to fetch products:", err);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -42,36 +47,6 @@ export function Dashboard() {
     useEffect(() => {
         fetchProducts();
     }, []);
-
-    // Calculated Portfolio Metrics
-    const metrics = useMemo(() => {
-        const totalProducts = products.length;
-        const totalImages = products.reduce((acc, p) => acc + (p.images?.length || 0), 0);
-
-        // Group total value by currency
-        const valueByCurrency = products.reduce((acc, p) => {
-            const curr = p.price?.currency || 'USD';
-            const amt = parseFloat(p.price?.amount || 0);
-            acc[curr] = (acc[curr] || 0) + (isNaN(amt) ? 0 : amt);
-            return acc;
-        }, {});
-
-        const formattedTotalValue = Object.entries(valueByCurrency)
-            .map(([curr, total]) => {
-                try {
-                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: curr }).format(total);
-                } catch {
-                    return `${curr} ${total.toFixed(2)}`;
-                }
-            })
-            .join(' + ') || '$0.00';
-
-        return {
-            totalProducts,
-            totalImages,
-            formattedTotalValue,
-        };
-    }, [products]);
 
     // Filter & Sort products
     const filteredProducts = useMemo(() => {
@@ -140,6 +115,11 @@ export function Dashboard() {
         setTimeout(() => setCopiedId(null), 2000);
     };
 
+    const handleLogoutClick = async () => {
+        await handleLogout();
+        navigate('/login');
+    };
+
     return (
         <div className="min-h-screen bg-[#0c1324] text-[#dce1fb] font-sans antialiased flex flex-col">
             {/* Header / Top Nav */}
@@ -151,18 +131,28 @@ export function Dashboard() {
                         </Link>
                         <nav className="hidden md:flex gap-6 items-center">
                             <Link
-                                to="/seller/dashboard"
+                                to="/"
                                 className="text-[#f59e0b] font-bold font-['JetBrains_Mono'] text-xs tracking-[0.05em] uppercase flex items-center gap-1.5"
                             >
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]"></span>
-                                DASHBOARD
+                                MARKETPLACE
                             </Link>
-                            <Link
-                                to="/seller/create-product"
-                                className="text-[#a08e7a] hover:text-[#f59e0b] transition-colors duration-300 font-['JetBrains_Mono'] text-xs font-medium tracking-[0.05em] uppercase"
-                            >
-                                ADD PRODUCT
-                            </Link>
+                            {user && user.role === 'seller' && (
+                                <>
+                                    <Link
+                                        to="/seller/dashboard"
+                                        className="text-[#a08e7a] hover:text-[#f59e0b] transition-colors duration-300 font-['JetBrains_Mono'] text-xs font-medium tracking-[0.05em] uppercase"
+                                    >
+                                        DASHBOARD
+                                    </Link>
+                                    <Link
+                                        to="/seller/create-product"
+                                        className="text-[#a08e7a] hover:text-[#f59e0b] transition-colors duration-300 font-['JetBrains_Mono'] text-xs font-medium tracking-[0.05em] uppercase"
+                                    >
+                                        ADD PRODUCT
+                                    </Link>
+                                </>
+                            )}
                         </nav>
                     </div>
 
@@ -171,21 +161,44 @@ export function Dashboard() {
                             onClick={() => fetchProducts(true)}
                             disabled={refreshing}
                             className="p-2 rounded-lg bg-[#131b2e] border border-[#2e3447]/60 text-[#a08e7a] hover:text-white hover:border-[#f59e0b]/40 transition-all cursor-pointer"
-                            title="Refresh Data"
+                            title="Refresh Marketplace"
                         >
                             <svg className={`w-4 h-4 ${refreshing ? 'animate-spin text-[#f59e0b]' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                         </button>
-                        <Link
-                            to="/seller/create-product"
-                            className="flex items-center gap-2 bg-[#f59e0b] hover:bg-[#d97706] text-[#0c1324] font-semibold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg transition-all shadow-lg shadow-[#f59e0b]/10"
-                        >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Create Product
-                        </Link>
+
+                        {user ? (
+                            <div className="flex items-center gap-4">
+                                <div className="hidden sm:flex flex-col items-end">
+                                    <span className="text-white text-xs font-semibold leading-none">{user.fullname || 'Zentra User'}</span>
+                                    <span className="text-[10px] font-mono text-[#f59e0b] uppercase tracking-wider mt-1 bg-[#f59e0b]/10 px-1.5 py-0.2 rounded border border-[#f59e0b]/20">
+                                        {user.role}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={handleLogoutClick}
+                                    className="flex items-center gap-1.5 border border-[#2e3447] hover:border-rose-500/40 text-[#a08e7a] hover:text-rose-400 bg-[#131b2e] text-xs font-semibold uppercase tracking-wider px-3.5 py-2 rounded-lg transition-all cursor-pointer"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    to="/login"
+                                    className="text-white hover:text-[#f59e0b] text-xs font-semibold uppercase tracking-wider px-4 py-2.5 rounded-lg transition-all"
+                                >
+                                    Sign In
+                                </Link>
+                                <Link
+                                    to="/register"
+                                    className="bg-[#f59e0b] hover:bg-[#d97706] text-[#0c1324] font-semibold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg transition-all shadow-lg shadow-[#f59e0b]/10"
+                                >
+                                    Register
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>
@@ -194,98 +207,25 @@ export function Dashboard() {
             <main className="flex-grow w-full max-w-[1400px] mx-auto px-4 md:px-12 py-8 relative">
                 {/* Ambient glow */}
                 <div className="absolute top-10 right-10 w-[500px] h-[500px] bg-[#f59e0b]/5 rounded-full blur-[140px] pointer-events-none"></div>
+                <div className="absolute bottom-10 left-10 w-[400px] h-[400px] bg-[#f59e0b]/2 rounded-full blur-[120px] pointer-events-none"></div>
 
-                {/* Page Title & Status */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[#f59e0b] text-[10px] font-mono uppercase tracking-widest bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2.5 py-0.5 rounded-full">
-                                Seller Portal
-                            </span>
-                            <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                Live Syncing
-                            </span>
-                        </div>
-                        <h1 className="font-['Hanken_Grotesk'] text-3xl md:text-4xl font-bold text-white tracking-tight mt-2">
-                            Seller Dashboard
-                        </h1>
-                        <p className="text-[#a08e7a] text-sm mt-1">
-                            Manage, analyze, and monitor your listed products portfolio.
-                        </p>
+                {/* Hero Section */}
+                <div className="text-center md:text-left mb-12 max-w-3xl">
+                    <div className="inline-flex items-center gap-2 mb-3">
+                        <span className="text-[#f59e0b] text-[10px] font-mono uppercase tracking-widest bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2.5 py-0.5 rounded-full">
+                            Zentra Asset Exchange
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Live Market
+                        </span>
                     </div>
-                </div>
-
-                {/* Performance Stat Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
-                    {/* Card 1: Total Listed Products */}
-                    <div className="bg-[#131b2e] border border-[#2e3447]/60 rounded-xl p-5 relative overflow-hidden group hover:border-[#f59e0b]/30 transition-all duration-300">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#f59e0b]/5 rounded-bl-full group-hover:bg-[#f59e0b]/10 transition-colors pointer-events-none"></div>
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-[#a08e7a] text-xs font-mono uppercase tracking-wider">Total Products</span>
-                            <div className="w-9 h-9 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center text-[#f59e0b]">
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div className="text-3xl font-bold text-white tracking-tight">
-                            {loading ? (
-                                <div className="h-8 w-20 bg-[#2e3447]/50 rounded animate-pulse"></div>
-                            ) : (
-                                metrics.totalProducts
-                            )}
-                        </div>
-                        <div className="text-xs text-[#a08e7a] mt-2 flex items-center gap-1.5">
-                            <span className="text-emerald-400 font-medium">Active listings</span> in inventory
-                        </div>
-                    </div>
-
-                    {/* Card 2: Total Portfolio Value */}
-                    <div className="bg-[#131b2e] border border-[#2e3447]/60 rounded-xl p-5 relative overflow-hidden group hover:border-[#f59e0b]/30 transition-all duration-300">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#f59e0b]/5 rounded-bl-full group-hover:bg-[#f59e0b]/10 transition-colors pointer-events-none"></div>
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-[#a08e7a] text-xs font-mono uppercase tracking-wider">Portfolio Value</span>
-                            <div className="w-9 h-9 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center text-[#f59e0b]">
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 12v-2m0 0c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div className="text-3xl font-bold text-white tracking-tight">
-                            {loading ? (
-                                <div className="h-8 w-28 bg-[#2e3447]/50 rounded animate-pulse"></div>
-                            ) : (
-                                metrics.formattedTotalValue
-                            )}
-                        </div>
-                        <div className="text-xs text-[#a08e7a] mt-2 flex items-center gap-1.5">
-                            Combined valuation across items
-                        </div>
-                    </div>
-
-                    {/* Card 3: Media Assets */}
-                    <div className="bg-[#131b2e] border border-[#2e3447]/60 rounded-xl p-5 relative overflow-hidden group hover:border-[#f59e0b]/30 transition-all duration-300">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#f59e0b]/5 rounded-bl-full group-hover:bg-[#f59e0b]/10 transition-colors pointer-events-none"></div>
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-[#a08e7a] text-xs font-mono uppercase tracking-wider">Media Assets</span>
-                            <div className="w-9 h-9 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center text-[#f59e0b]">
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div className="text-3xl font-bold text-white tracking-tight">
-                            {loading ? (
-                                <div className="h-8 w-16 bg-[#2e3447]/50 rounded animate-pulse"></div>
-                            ) : (
-                                metrics.totalImages
-                            )}
-                        </div>
-                        <div className="text-xs text-[#a08e7a] mt-2 flex items-center gap-1.5">
-                            High-res images hosted on CDN
-                        </div>
-                    </div>
+                    <h1 className="font-['Hanken_Grotesk'] text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
+                        Digital Trade Infrastructure
+                    </h1>
+                    <p className="text-[#a08e7a] text-base md:text-lg mt-3 leading-relaxed">
+                        Access premium products verified by independent trade nodes. Discover, review, and acquire assets securely through decentralized settlement.
+                    </p>
                 </div>
 
                 {/* Filter & Control Bar */}
@@ -301,7 +241,7 @@ export function Dashboard() {
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search by title, description, or ID..."
+                            placeholder="Search marketplace items..."
                             className="w-full pl-10 pr-4 py-2.5 bg-[#0c1324] border border-[#2e3447] rounded-lg text-sm text-white placeholder-[#a08e7a]/60 focus:outline-none focus:border-[#f59e0b]/60 transition-colors"
                         />
                         {searchQuery && (
@@ -323,7 +263,7 @@ export function Dashboard() {
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
-                                className="bg-transparent text-xs text-white focus:outline-none cursor-pointer pr-2"
+                                className="bg-transparent text-xs text-white focus:outline-none cursor-pointer pr-2 border-none"
                             >
                                 <option value="newest" className="bg-[#131b2e] text-white">Newest First</option>
                                 <option value="oldest" className="bg-[#131b2e] text-white">Oldest First</option>
@@ -347,7 +287,7 @@ export function Dashboard() {
                             <button
                                 onClick={() => setViewMode('table')}
                                 className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 'text-[#a08e7a] hover:text-white'} transition-colors cursor-pointer`}
-                                title="List/Table View"
+                                title="List View"
                             >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -357,11 +297,10 @@ export function Dashboard() {
                     </div>
                 </div>
 
-                {/* Products Section Header */}
-                <div className="flex items-center justify-between mb-4">
+                {/* Status Bar */}
+                <div className="flex items-center justify-between mb-6">
                     <div className="text-sm font-mono text-[#a08e7a]">
-                        Showing <span className="text-white font-bold">{filteredProducts.length}</span> of{' '}
-                        <span className="text-white">{products.length}</span> products
+                        Found <span className="text-white font-bold">{filteredProducts.length}</span> active assets
                     </div>
                 </div>
 
@@ -392,30 +331,20 @@ export function Dashboard() {
                             </svg>
                         </div>
                         <h3 className="text-xl font-semibold text-white mb-2">
-                            {searchQuery ? 'No matching products found' : 'No Products Listed Yet'}
+                            No listings found
                         </h3>
                         <p className="text-[#a08e7a] text-sm mb-6 max-w-md mx-auto">
                             {searchQuery
-                                ? `No items matched "${searchQuery}". Try clearing your search query or sorting settings.`
-                                : 'Start building your portfolio by publishing your first product listing on Zentra.'}
+                                ? `No items matched "${searchQuery}". Try clearing search query.`
+                                : 'There are currently no listed products on Zentra.'}
                         </p>
-                        {searchQuery ? (
+                        {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery('')}
                                 className="px-4 py-2 bg-[#2e3447] hover:bg-[#3b435b] text-white text-xs uppercase tracking-wider font-semibold rounded-lg transition-colors cursor-pointer"
                             >
                                 Clear Search Filter
                             </button>
-                        ) : (
-                            <Link
-                                to="/seller/create-product"
-                                className="inline-flex items-center gap-2 bg-[#f59e0b] hover:bg-[#d97706] text-[#0c1324] font-semibold text-xs uppercase tracking-wider px-5 py-3 rounded-lg transition-all shadow-lg shadow-[#f59e0b]/10"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                </svg>
-                                Add Your First Product
-                            </Link>
                         )}
                     </div>
                 ) : viewMode === 'grid' ? (
@@ -466,12 +395,9 @@ export function Dashboard() {
                                     {/* Product Body */}
                                     <div className="p-5 flex-grow flex flex-col justify-between">
                                         <div>
-                                            <div className="flex items-start justify-between gap-2 mb-2">
-                                                <h3 className="font-semibold text-lg text-white group-hover:text-[#f59e0b] transition-colors line-clamp-1">
-                                                    {product.title || 'Untitled Product'}
-                                                </h3>
-                                            </div>
-
+                                            <h3 className="font-semibold text-lg text-white group-hover:text-[#f59e0b] transition-colors line-clamp-1 mb-2">
+                                                {product.title || 'Untitled Product'}
+                                            </h3>
                                             <p className="text-[#a08e7a] text-xs leading-relaxed line-clamp-2 mb-4">
                                                 {product.description || 'No description provided for this listing.'}
                                             </p>
@@ -479,7 +405,7 @@ export function Dashboard() {
 
                                         <div className="pt-4 border-t border-[#2e3447]/60 flex items-center justify-between gap-2">
                                             <div className="text-[11px] font-mono text-[#a08e7a]">
-                                                Listed {formatDate(product.createdAt)}
+                                                {formatDate(product.createdAt)}
                                             </div>
 
                                             <div className="flex items-center gap-2">
@@ -519,7 +445,7 @@ export function Dashboard() {
                         })}
                     </div>
                 ) : (
-                    /* TABLE VIEW */
+                    /* LIST VIEW */
                     <div className="bg-[#131b2e] border border-[#2e3447]/60 rounded-xl overflow-hidden shadow-xl">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
@@ -527,8 +453,8 @@ export function Dashboard() {
                                     <tr className="bg-[#0c1324] border-b border-[#2e3447]/60 text-[11px] font-mono uppercase tracking-wider text-[#a08e7a]">
                                         <th className="py-3.5 px-4">Item</th>
                                         <th className="py-3.5 px-4">Price</th>
-                                        <th className="py-3.5 px-4">Product ID</th>
-                                        <th className="py-3.5 px-4">Created Date</th>
+                                        <th className="py-3.5 px-4">Asset ID</th>
+                                        <th className="py-3.5 px-4">Listed Date</th>
                                         <th className="py-3.5 px-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
@@ -570,11 +496,11 @@ export function Dashboard() {
                                                             title="Copy ID"
                                                         >
                                                             {isCopied ? (
-                                                                <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                                                <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                                                 </svg>
                                                             ) : (
-                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                                                 </svg>
                                                             )}
@@ -607,7 +533,7 @@ export function Dashboard() {
 
             {/* PRODUCT DETAIL MODAL */}
             {selectedProduct && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fadeIn" onClick={() => setSelectedProduct(null)}>
                     <div
                         className="bg-[#131b2e] border border-[#2e3447] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative flex flex-col"
                         onClick={(e) => e.stopPropagation()}
@@ -615,8 +541,8 @@ export function Dashboard() {
                         {/* Modal Header */}
                         <div className="p-6 border-b border-[#2e3447] flex items-center justify-between sticky top-0 bg-[#131b2e] z-10">
                             <div>
-                                <span className="text-[10px] font-mono uppercase text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2 py-0.5 rounded">
-                                    Product Details
+                                <span className="text-[10px] font-mono uppercase text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2.5 py-0.5 rounded">
+                                    Asset Listing Details
                                 </span>
                                 <h2 className="text-xl font-bold text-white mt-1 leading-tight">
                                     {selectedProduct.title}
@@ -637,7 +563,7 @@ export function Dashboard() {
                             {/* Main Image Gallery */}
                             {selectedProduct.images && selectedProduct.images.length > 0 ? (
                                 <div className="space-y-3">
-                                    <div className="h-72 w-full bg-[#080e1a] rounded-xl overflow-hidden border border-[#2e3447] flex items-center justify-center relative">
+                                    <div className="h-80 w-full bg-[#080e1a] rounded-xl overflow-hidden border border-[#2e3447] flex items-center justify-center relative">
                                         <img
                                             src={selectedProduct.images[selectedImageIndex]?.url}
                                             alt={selectedProduct.title}
@@ -663,60 +589,60 @@ export function Dashboard() {
                                     )}
                                 </div>
                             ) : (
-                                <div className="h-40 bg-[#080e1a] rounded-xl border border-[#2e3447] flex items-center justify-center text-[#a08e7a] text-sm">
-                                    No images associated with this product
+                                <div className="h-40 bg-[#080e1a] rounded-xl border border-[#2e3447] flex items-center justify-center text-[#a08e7a]">
+                                    <svg className="w-12 h-12 mb-1 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className="text-xs">No images available</span>
                                 </div>
                             )}
 
-                            {/* Details Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="bg-[#0c1324] border border-[#2e3447] p-4 rounded-xl">
-                                    <div className="text-xs text-[#a08e7a] uppercase font-mono mb-1">Listing Price</div>
-                                    <div className="text-2xl font-bold text-[#f59e0b] font-mono">
-                                        {formatPrice(selectedProduct.price)}
-                                    </div>
+                            {/* Details Metadata */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#0c1324] border border-[#2e3447]/60 rounded-xl p-4">
+                                <div>
+                                    <div className="text-[10px] font-mono uppercase text-[#a08e7a]">Listed Price</div>
+                                    <div className="text-2xl font-bold text-[#f59e0b] mt-0.5">{formatPrice(selectedProduct.price)}</div>
                                 </div>
-                                <div className="bg-[#0c1324] border border-[#2e3447] p-4 rounded-xl">
-                                    <div className="text-xs text-[#a08e7a] uppercase font-mono mb-1">Created At</div>
-                                    <div className="text-sm font-semibold text-white">
-                                        {formatDate(selectedProduct.createdAt)}
-                                    </div>
-                                    <div className="text-[10px] text-[#a08e7a] font-mono mt-0.5">
-                                        {selectedProduct.createdAt}
-                                    </div>
+                                <div>
+                                    <div className="text-[10px] font-mono uppercase text-[#a08e7a]">Listed Date</div>
+                                    <div className="text-sm font-semibold text-white mt-1.5">{formatDate(selectedProduct.createdAt)}</div>
                                 </div>
-                            </div>
-
-                            {/* Description */}
-                            <div>
-                                <h4 className="text-xs uppercase font-mono text-[#a08e7a] mb-2">Description</h4>
-                                <div className="bg-[#0c1324] border border-[#2e3447] p-4 rounded-xl text-sm text-[#dce1fb] whitespace-pre-wrap leading-relaxed">
-                                    {selectedProduct.description || 'No description available for this item.'}
-                                </div>
-                            </div>
-
-                            {/* Identifiers */}
-                            <div className="bg-[#0c1324] border border-[#2e3447] p-4 rounded-xl space-y-2 text-xs font-mono">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[#a08e7a]">Product ID:</span>
-                                    <span className="text-white bg-[#131b2e] px-2 py-0.5 rounded border border-[#2e3447] select-all">
+                                <div className="md:col-span-2">
+                                    <div className="text-[10px] font-mono uppercase text-[#a08e7a] flex items-center gap-1.5">
+                                        <span>Product/Asset ID</span>
+                                        <button
+                                            onClick={() => copyToClipboard(selectedProduct._id)}
+                                            className="text-[#f59e0b] hover:text-[#ffc174] transition-colors flex items-center gap-1 font-mono text-[9px] cursor-pointer"
+                                        >
+                                            {copiedId === selectedProduct._id ? 'Copied!' : 'Copy'}
+                                        </button>
+                                    </div>
+                                    <div className="font-mono text-xs text-white bg-[#131b2e] border border-[#2e3447] px-3 py-1.5 rounded-lg mt-1 select-all break-all">
                                         {selectedProduct._id}
-                                    </span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[#a08e7a]">Seller ID:</span>
-                                    <span className="text-white bg-[#131b2e] px-2 py-0.5 rounded border border-[#2e3447] select-all">
+                                <div className="md:col-span-2">
+                                    <div className="text-[10px] font-mono uppercase text-[#a08e7a]">Seller Identity</div>
+                                    <div className="font-mono text-xs text-white bg-[#131b2e] border border-[#2e3447] px-3 py-1.5 rounded-lg mt-1 break-all select-all">
                                         {selectedProduct.seller}
-                                    </span>
+                                    </div>
                                 </div>
+                            </div>
+
+                            {/* Description block */}
+                            <div>
+                                <h3 className="text-xs font-mono uppercase text-[#a08e7a] mb-2">Description</h3>
+                                <p className="text-sm text-[#dce1fb] leading-relaxed whitespace-pre-wrap bg-[#0c1324] border border-[#2e3447]/60 rounded-xl p-4">
+                                    {selectedProduct.description || 'No description provided.'}
+                                </p>
                             </div>
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="p-4 border-t border-[#2e3447] bg-[#0c1324] flex justify-end gap-3 rounded-b-2xl">
+                        <div className="p-4 border-t border-[#2e3447] bg-[#0c1324] flex justify-end">
                             <button
                                 onClick={() => setSelectedProduct(null)}
-                                className="px-4 py-2 rounded-lg bg-[#2e3447] hover:bg-[#3b435b] text-white text-xs font-semibold tracking-wider uppercase transition-colors cursor-pointer"
+                                className="px-5 py-2 rounded-xl bg-[#2e3447] hover:bg-[#3d455d] text-white font-semibold text-xs uppercase tracking-wider cursor-pointer transition-colors"
                             >
                                 Close
                             </button>
@@ -724,6 +650,23 @@ export function Dashboard() {
                     </div>
                 </div>
             )}
+
+            {/* Simple Footer */}
+            <footer className="w-full bg-[#0c1324] border-t border-[#2e3447]/40 py-6 mt-12 text-center text-xs text-[#a08e7a]/50">
+                <div className="max-w-[1400px] mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div>© 2026 Zentra Digital Trade. All rights secured.</div>
+                    <div className="flex gap-4">
+                        <Link to="/" className="hover:text-white transition-colors">Marketplace</Link>
+                        {user && user.role === 'seller' && (
+                            <Link to="/seller/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
+                        )}
+                        <span className="text-[#2e3447]">|</span>
+                        <span>STATUS: ONLINE</span>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
-}
+};
+
+export default Home;
