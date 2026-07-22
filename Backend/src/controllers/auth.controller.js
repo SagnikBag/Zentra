@@ -113,7 +113,7 @@ export const getMe = async (req,res)=>{
             email: user.email,
             contact: user.contact,
             fullname: user.fullname,
-            role: user.fole
+            role: user.role
         }
     })
 }

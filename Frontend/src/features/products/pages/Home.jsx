@@ -356,6 +356,9 @@ const Home = () => {
 
                             return (
                                 <div
+
+                                    onClick={() => navigate(`/product/${product._id}`)}
+
                                     key={product._id}
                                     className="bg-[#131b2e] border border-[#2e3447]/60 hover:border-[#f59e0b]/50 rounded-xl overflow-hidden transition-all duration-300 flex flex-col group shadow-lg shadow-black/20"
                                 >
@@ -393,7 +396,10 @@ const Home = () => {
                                     </div>
 
                                     {/* Product Body */}
-                                    <div className="p-5 flex-grow flex flex-col justify-between">
+                                    <div
+
+
+                                        className="p-5 flex-grow flex flex-col justify-between">
                                         <div>
                                             <h3 className="font-semibold text-lg text-white group-hover:text-[#f59e0b] transition-colors line-clamp-1 mb-2">
                                                 {product.title || 'Untitled Product'}
