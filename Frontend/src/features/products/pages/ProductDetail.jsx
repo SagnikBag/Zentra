@@ -4,577 +4,590 @@ import { useProduct } from '../hooks/useProduct';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../../auth/hooks/useAuth';
 
+/* ─── colour detection helpers ───────────────────────────────────── */
+const COLOUR_MAP = {
+    red: '#ef4444', green: '#22c55e', blue: '#3b82f6', yellow: '#eab308',
+    pink: '#ec4899', orange: '#f97316', purple: '#a855f7', brown: '#92400e',
+    black: '#1f2937', white: '#f9fafb', grey: '#9ca3af', gray: '#9ca3af',
+    navy: '#1e3a5f', beige: '#d4b896', cream: '#fef3c7', gold: '#f59e0b',
+    silver: '#d1d5db', maroon: '#7f1d1d', teal: '#14b8a6', cyan: '#06b6d4',
+    olive: '#65a30d', coral: '#f87171', lavender: '#c4b5fd', violet: '#7c3aed',
+    indigo: '#4f46e5', lime: '#84cc16', turquoise: '#2dd4bf', magenta: '#c026d3',
+};
+const COLOR_KEYS = new Set(Object.keys(COLOUR_MAP));
+const isColorAttr = (key, values) =>
+    key.toLowerCase().includes('color') ||
+    key.toLowerCase().includes('colour') ||
+    values.some(v => COLOR_KEYS.has(String(v).toLowerCase().trim()));
+
+/* ─── tiny SVGs ─────────────────────────────────────────────────── */
+const ChevronDown = ({ cls = 'w-3.5 h-3.5' }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={cls}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+);
+const ChevronUp = ({ cls = 'w-3.5 h-3.5' }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={cls}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+    </svg>
+);
+
 export default function ProductDetail() {
     const { productId } = useParams();
     const navigate = useNavigate();
     const { handleGetProductById } = useProduct();
     const { handleLogout } = useAuth();
 
-    const rawUser = useSelector(state => state.auth.user);
-    const user = useMemo(() => {
-        return rawUser?.user ? rawUser.user : rawUser;
-    }, [rawUser]);
+    const rawUser = useSelector(s => s.auth.user);
+    const user = useMemo(() => (rawUser?.user ? rawUser.user : rawUser), [rawUser]);
 
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // UI state
-    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-    const [quantity, setQuantity] = useState(1);
-    const [activeTab, setActiveTab] = useState('description');
-    const [toastMessage, setToastMessage] = useState(null);
-    const [copiedId, setCopiedId] = useState(false);
+    /* UI */
+    const [imgIdx, setImgIdx] = useState(0);
+    const [qty, setQty] = useState(1);
+    const [toast, setToast] = useState(null);
+    const [wishlisted, setWL] = useState(false);
+    const [pincode, setPincode] = useState('');
+    const [dMsg, setDMsg] = useState(null);
+    const [detailOpen, setDetailOpen] = useState(false);
 
-    // Helper to safely extract image URLs
-    const extractImageUrl = (img) => {
+    /* variant selection: { attrKey: value } */
+    const [sel, setSel] = useState({});
+
+    /* ─── helpers ─── */
+    const getUrl = img => {
         if (!img) return null;
         if (typeof img === 'string') return img;
-        return img.url || img.secure_url || img.path || img.src || img.preview || null;
+        return img.url || img.secure_url || img.path || null;
     };
 
-    // Helper to format currency
-    const formatPrice = (priceObj) => {
-        if (!priceObj) return '₹0.00';
-        const amount = parseFloat(priceObj.amount || 0);
-        const currency = priceObj.currency || 'INR';
-
+    const fmt = priceObj => {
+        if (!priceObj) return '₹0';
         try {
-            return new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', {
-                style: 'currency',
-                currency: currency,
-                maximumFractionDigits: 2,
-            }).format(amount);
-        } catch {
-            return `${currency} ${amount.toLocaleString()}`;
-        }
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency', currency: priceObj.currency || 'INR', maximumFractionDigits: 0,
+            }).format(parseFloat(priceObj.amount || 0));
+        } catch { return `₹${priceObj.amount}`; }
     };
 
-    // Format date string
-    const formatDate = (dateStr) => {
-        if (!dateStr) return 'N/A';
-        try {
-            return new Date(dateStr).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        } catch {
-            return dateStr;
-        }
+    const fmtDate = d => {
+        try { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
+        catch { return d; }
     };
 
-    // Trigger temporary feedback toasts for button actions
-    const showToast = (message) => {
-        setToastMessage(message);
-        setTimeout(() => {
-            setToastMessage(null);
-        }, 3000);
-    };
+    const showToast = msg => { setToast(msg); setTimeout(() => setToast(null), 2800); };
 
-    const handleCopyId = (id) => {
-        if (!id) return;
-        navigator.clipboard.writeText(id);
-        setCopiedId(true);
-        setTimeout(() => setCopiedId(false), 2000);
-    };
-
-    async function fetchProductDetails() {
-        if (!productId) {
-            setError("No product ID provided");
-            setLoading(false);
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
+    /* ─── fetch ─── */
+    async function fetchProduct() {
+        if (!productId) { setError('No product ID'); setLoading(false); return; }
+        setLoading(true); setError(null);
         try {
             const data = await handleGetProductById(productId);
-            const fetchedProduct = data?.product || data?.data || data;
-
-            if (fetchedProduct && (fetchedProduct._id || fetchedProduct.title)) {
-                setProduct(fetchedProduct);
-            } else {
-                // If API returns empty or invalid structure, set null
-                setProduct(data || null);
-            }
-        } catch (err) {
-            console.error("Failed to fetch product details:", err);
-            setError(err?.response?.data?.message || "Failed to load product details");
-        } finally {
-            setLoading(false);
-        }
+            const p = data?.product || data?.data || data;
+            setProduct((p?._id || p?.title) ? p : data || null);
+        } catch (e) {
+            setError(e?.response?.data?.message || 'Failed to load product');
+        } finally { setLoading(false); }
     }
 
-    useEffect(() => {
-        fetchProductDetails();
-        window.scrollTo(0, 0);
-    }, [productId]);
+    useEffect(() => { fetchProduct(); window.scrollTo(0, 0); }, [productId]);
+    useEffect(() => { setSel({}); setImgIdx(0); }, [product?._id]);
 
-    // Fallback sample product images if list is empty or unavailable
-    const defaultPlaceholderImages = [
-        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=800&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1484704849700-f032a568e944?q=80&w=800&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1546435770-a3e426bf472b?q=80&w=800&auto=format&fit=crop"
+    /* ─── variants ─── */
+    const variants = useMemo(() => Array.isArray(product?.varient) ? product.varient : [], [product]);
+
+    const attrOptions = useMemo(() => {
+        const map = {};
+        variants.forEach(v => {
+            const attrs = v.attridutes || v.attributes || {};
+            Object.entries(attrs).forEach(([k, val]) => {
+                if (!map[k]) map[k] = new Set();
+                map[k].add(String(val));
+            });
+        });
+        return Object.fromEntries(Object.entries(map).map(([k, s]) => [k, [...s]]));
+    }, [variants]);
+
+    const hasVariants = variants.length > 0;
+
+    const activeVariant = useMemo(() => {
+        if (!hasVariants) return null;
+        const keys = Object.keys(sel);
+        if (!keys.length) return variants[0];
+        const exact = variants.find(v => {
+            const a = v.attridutes || v.attributes || {};
+            return keys.every(k => a[k] !== undefined && String(a[k]) === sel[k]);
+        });
+        if (exact) return exact;
+        let best = null, bestScore = -1;
+        variants.forEach(v => {
+            const a = v.attridutes || v.attributes || {};
+            const score = keys.filter(k => a[k] !== undefined && String(a[k]) === sel[k]).length;
+            if (score > bestScore) { best = v; bestScore = score; }
+        });
+        return best;
+    }, [variants, sel, hasVariants]);
+
+    /* effective values (variant → fallback to product) */
+    const effPrice = useMemo(() =>
+        activeVariant?.price?.amount !== undefined ? activeVariant.price : product?.price,
+        [activeVariant, product]);
+
+    const effStock = useMemo(() => activeVariant?.stock ?? null, [activeVariant]);
+
+    /* ─── images ─── */
+    const FALLBACK = [
+        'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800',
+        'https://images.unsplash.com/photo-1483181957632-8bda974cbc91?w=800',
     ];
 
-    const productImages = useMemo(() => {
-        if (product?.images && Array.isArray(product.images) && product.images.length > 0) {
-            const extracted = product.images.map(extractImageUrl).filter(Boolean);
-            if (extracted.length > 0) return extracted;
-        }
-        return defaultPlaceholderImages;
-    }, [product]);
+    const images = useMemo(() => {
+        const vi = activeVariant?.images;
+        if (vi?.length) { const ex = vi.map(getUrl).filter(Boolean); if (ex.length) return ex; }
+        if (product?.images?.length) { const ex = product.images.map(getUrl).filter(Boolean); if (ex.length) return ex; }
+        return FALLBACK;
+    }, [product, activeVariant]);
 
-    const activeImageUrl = productImages[selectedImageIndex] || productImages[0];
+    const activeImg = images[imgIdx] || images[0];
+
+    const handleSel = (key, val) => { setSel(p => ({ ...p, [key]: val })); setImgIdx(0); };
 
     const handleLogoutClick = async () => {
-        try {
-            await handleLogout();
-            navigate('/login');
-        } catch (err) {
-            console.error("Logout error:", err);
-        }
+        try { await handleLogout(); navigate('/login'); } catch { }
     };
 
+    const checkDelivery = () => {
+        if (/^\d{6}$/.test(pincode)) {
+            const d = new Date(Date.now() + 2 * 86400000);
+            setDMsg(`Delivery by ${d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })} — Free`);
+        } else setDMsg('Please enter a valid 6-digit PIN code.');
+    };
+
+    /* ════════════════════ RENDER ════════════════════ */
     return (
-        <div className="min-h-screen bg-[#0c1324] text-[#a08e7a] font-sans flex flex-col selection:bg-[#f59e0b] selection:text-[#0c1324]">
-            {/* Notification Toast */}
-            {toastMessage && (
-                <div className="fixed top-20 right-6 z-50 bg-[#131b2e] border border-[#f59e0b]/40 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 animate-bounce">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]"></span>
-                    <p className="text-sm font-medium">{toastMessage}</p>
+        <div className="min-h-screen bg-white text-gray-900 flex flex-col" style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>
+
+            {/* ── Toast ── */}
+            {toast && (
+                <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2"
+                    style={{ animation: 'fadeIn .2s ease' }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" className="w-4 h-4 shrink-0">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {toast}
                 </div>
             )}
 
-            {/* Top Navigation Bar */}
-            <header className="border-b border-[#2e3447]/60 bg-[#0c1324]/90 backdrop-blur-md sticky top-0 z-40">
-                <div className="max-w-[1400px] mx-auto px-4 md:px-12 h-16 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-8">
-                        <Link to="/" className="flex items-center gap-2 group">
-                            <div className="w-8 h-8 rounded-lg bg-[#f59e0b] flex items-center justify-center text-[#0c1324] font-black text-lg group-hover:scale-105 transition-transform">
-                                Z
-                            </div>
-                            <span className="font-['Hanken_Grotesk'] text-xl font-bold text-white tracking-wider">
-                                ZENTRA
-                            </span>
-                        </Link>
-                        <nav className="hidden md:flex items-center gap-6">
-                            <Link
-                                to="/"
-                                className="text-white hover:text-[#f59e0b] transition-colors duration-200 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                </svg>
-                                Back to Products
-                            </Link>
-                        </nav>
+            {/* ════ HEADER ════ */}
+            <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
+                <div className="max-w-screen-xl mx-auto px-5 h-14 flex items-center justify-between">
+                    {/* Logo */}
+                    <Link to="/" className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded bg-black flex items-center justify-center text-white font-black text-sm">Z</div>
+                        <span className="font-extrabold text-base tracking-[0.18em] uppercase text-gray-900">Zentra</span>
+                    </Link>
+
+                    {/* Search */}
+                    <div className="hidden md:block relative w-96">
+                        <input placeholder="Search for products, brands…"
+                            className="w-full bg-gray-100 border border-transparent focus:border-gray-300 focus:bg-white rounded px-10 py-2 text-sm focus:outline-none transition-all" />
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+                        </svg>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    {/* Nav icons */}
+                    <div className="flex items-center gap-5 text-xs text-gray-500">
                         {user ? (
-                            <div className="flex items-center gap-3">
-                                <div className="hidden sm:flex flex-col items-end">
-                                    <span className="text-white text-xs font-semibold leading-none">{user.fullname || 'Zentra User'}</span>
-                                    <span className="text-[10px] font-mono text-[#f59e0b] uppercase tracking-wider mt-1 bg-[#f59e0b]/10 px-1.5 py-0.5 rounded border border-[#f59e0b]/20">
-                                        {user.role || 'Member'}
-                                    </span>
+                            <>
+                                <div className="flex flex-col items-center gap-0.5">
+                                    <div className="w-6 h-6 rounded-full bg-gray-900 text-white text-xs font-bold flex items-center justify-center">
+                                        {(user.fullname || 'U')[0].toUpperCase()}
+                                    </div>
+                                    <span>{user.fullname?.split(' ')[0] || 'Profile'}</span>
                                 </div>
-                                <button
-                                    onClick={handleLogoutClick}
-                                    className="border border-[#2e3447] hover:border-rose-500/40 text-[#a08e7a] hover:text-rose-400 bg-[#131b2e] text-xs font-semibold uppercase tracking-wider px-3.5 py-2 rounded-lg transition-all cursor-pointer"
-                                >
-                                    Logout
-                                </button>
-                            </div>
+                                <button onClick={handleLogoutClick} className="hover:text-gray-900 transition-colors cursor-pointer">Logout</button>
+                            </>
                         ) : (
-                            <div className="flex items-center gap-2">
-                                <Link
-                                    to="/login"
-                                    className="text-white hover:text-[#f59e0b] text-xs font-semibold uppercase tracking-wider px-3 py-2 rounded-lg transition-all"
-                                >
-                                    Sign In
-                                </Link>
-                                <Link
-                                    to="/register"
-                                    className="bg-[#f59e0b] hover:bg-[#d97706] text-[#0c1324] font-semibold text-xs uppercase tracking-wider px-4 py-2 rounded-lg transition-all shadow-lg shadow-[#f59e0b]/10"
-                                >
-                                    Register
-                                </Link>
-                            </div>
+                            <Link to="/login" className="hover:text-gray-900 transition-colors flex flex-col items-center gap-0.5">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                <span>Profile</span>
+                            </Link>
                         )}
+                        <button onClick={() => showToast('Wishlist coming soon!')} className="flex flex-col items-center gap-0.5 hover:text-gray-900 transition-colors cursor-pointer">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                            <span>Wishlist</span>
+                        </button>
+                        <button onClick={() => showToast('Bag coming soon!')} className="flex flex-col items-center gap-0.5 hover:text-gray-900 transition-colors cursor-pointer">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            <span>Bag</span>
+                        </button>
                     </div>
                 </div>
             </header>
 
-            {/* Main Content Area */}
-            <main className="flex-grow w-full max-w-[1400px] mx-auto px-4 md:px-12 py-8 relative">
-                {/* Ambient glow backgrounds */}
-                <div className="absolute top-20 right-10 w-[500px] h-[500px] bg-[#f59e0b]/5 rounded-full blur-[140px] pointer-events-none"></div>
-                <div className="absolute bottom-10 left-10 w-[400px] h-[400px] bg-[#f59e0b]/2 rounded-full blur-[120px] pointer-events-none"></div>
-
-                {/* Breadcrumb Navigation */}
-                <nav className="flex items-center gap-2 text-xs font-mono text-[#a08e7a]/80 mb-6 flex-wrap">
-                    <Link to="/" className="hover:text-[#f59e0b] transition-colors">Marketplace</Link>
+            {/* ════ BREADCRUMB ════ */}
+            <div className="border-b border-gray-100">
+                <nav className="max-w-screen-xl mx-auto px-5 py-2 text-[11px] text-gray-400 flex items-center gap-1.5">
+                    <Link to="/" className="hover:text-gray-700 transition-colors">Home</Link>
                     <span>/</span>
-                    <span className="text-white font-medium truncate max-w-[200px] sm:max-w-md">
-                        {loading ? 'Loading Asset...' : (product?.title || 'Product Details')}
+                    <span className="text-gray-600 truncate max-w-xs">
+                        {loading ? 'Loading…' : product?.title || 'Product'}
                     </span>
                 </nav>
+            </div>
 
-                {/* Loading Skeleton */}
+            {/* ════ MAIN ════ */}
+            <main className="flex-1 max-w-screen-xl mx-auto w-full px-5 py-6">
+
+                {/* LOADING */}
                 {loading ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-pulse">
-                        <div className="lg:col-span-6 space-y-4">
-                            <div className="h-[420px] bg-[#131b2e] rounded-2xl border border-[#2e3447]/60"></div>
-                            <div className="grid grid-cols-4 gap-3">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="h-20 bg-[#131b2e] rounded-xl border border-[#2e3447]/40"></div>
-                                ))}
-                            </div>
+                    <div className="flex gap-5 animate-pulse">
+                        <div className="hidden sm:flex flex-col gap-2 w-[70px]">
+                            {[1, 2, 3, 4].map(i => <div key={i} className="w-[70px] h-[88px] bg-gray-100 rounded" />)}
                         </div>
-                        <div className="lg:col-span-6 space-y-6">
-                            <div className="h-4 w-32 bg-[#131b2e] rounded"></div>
-                            <div className="h-10 w-3/4 bg-[#131b2e] rounded-xl"></div>
-                            <div className="h-6 w-1/2 bg-[#131b2e] rounded"></div>
-                            <div className="h-24 bg-[#131b2e] rounded-xl"></div>
-                            <div className="h-12 bg-[#131b2e] rounded-xl"></div>
+                        <div className="flex-1 max-w-[420px] bg-gray-100 rounded" style={{ height: 540 }} />
+                        <div className="flex-1 max-w-[440px] space-y-4 pt-2">
+                            <div className="h-3 w-20 bg-gray-100 rounded" />
+                            <div className="h-7 w-3/4 bg-gray-100 rounded" />
+                            <div className="h-5 w-1/3 bg-gray-100 rounded" />
+                            <div className="h-5 w-1/4 bg-gray-100 rounded" />
+                            <div className="h-10 bg-gray-100 rounded" />
+                            <div className="h-10 bg-gray-100 rounded" />
+                            <div className="h-12 bg-gray-100 rounded" />
                         </div>
                     </div>
                 ) : error ? (
-                    /* Error State */
-                    <div className="bg-[#131b2e] border border-rose-500/30 rounded-2xl p-8 md:p-12 text-center max-w-xl mx-auto my-12">
-                        <div className="w-16 h-16 bg-rose-500/10 text-rose-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/20">
-                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                        </div>
-                        <h2 className="text-xl font-bold text-white mb-2">Product Not Found</h2>
-                        <p className="text-[#a08e7a] text-sm mb-6">{error}</p>
-                        <div className="flex items-center justify-center gap-3">
-                            <button
-                                onClick={fetchProductDetails}
-                                className="px-5 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] text-[#0c1324] font-semibold text-xs uppercase tracking-wider rounded-lg transition-colors"
-                            >
-                                Try Again
-                            </button>
-                            <Link
-                                to="/"
-                                className="px-5 py-2.5 bg-[#0c1324] border border-[#2e3447] text-white hover:border-[#f59e0b]/50 font-semibold text-xs uppercase tracking-wider rounded-lg transition-colors"
-                            >
-                                Return to Store
-                            </Link>
+                    /* ERROR */
+                    <div className="text-center py-24">
+                        <p className="text-5xl mb-4">😕</p>
+                        <h2 className="text-xl font-bold mb-2">Product not found</h2>
+                        <p className="text-sm text-gray-500 mb-6">{error}</p>
+                        <div className="flex justify-center gap-3">
+                            <button onClick={fetchProduct} className="px-6 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded hover:bg-gray-700 transition-colors cursor-pointer">Retry</button>
+                            <Link to="/" className="px-6 py-2.5 border border-gray-300 text-sm rounded hover:border-gray-500 transition-colors">Home</Link>
                         </div>
                     </div>
                 ) : (
-                    /* Main Product Grid */
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-                        
-                        {/* LEFT COLUMN: Gallery */}
-                        <div className="lg:col-span-6 flex flex-col gap-4">
-                            {/* Main Stage Image */}
-                            <div className="relative group rounded-2xl overflow-hidden bg-[#131b2e] border border-[#2e3447]/80 aspect-4/3 flex items-center justify-center shadow-xl">
-                                {activeImageUrl ? (
-                                    <img
-                                        src={activeImageUrl}
-                                        alt={product?.title || "Product image"}
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                        onError={(e) => {
-                                            e.target.onerror = null;
-                                            e.target.src = defaultPlaceholderImages[0];
-                                        }}
-                                    />
-                                ) : (
-                                    <div className="text-center p-6">
-                                        <svg className="w-16 h-16 text-[#2e3447] mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <span className="text-xs font-mono text-[#a08e7a]">Image Unavailable</span>
+
+                    /* ════════════ PRODUCT LAYOUT ════════════
+                       [thumb strip] [main image] [info panel]
+                    ══════════════════════════════════════════ */
+                    <div className="flex flex-col lg:flex-row gap-0 lg:gap-8">
+
+                        {/* ──────────────────────────────────────────
+                        LEFT: Thumbnail strip + main image
+                    ────────────────────────────────────────── */}
+                        <div className="flex gap-3 lg:flex-1 lg:max-w-[600px]">
+
+                            {/* Vertical thumbnail strip */}
+                            <div className="hidden sm:flex flex-col gap-2 w-[72px] shrink-0 pt-1">
+                                {images.map((url, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => setImgIdx(i)}
+                                        className={`w-[72px] h-[90px] rounded-sm overflow-hidden border-2 transition-all cursor-pointer
+                                        ${i === imgIdx ? 'border-gray-900' : 'border-transparent hover:border-gray-300'}`}
+                                    >
+                                        <img src={url} alt={`view ${i + 1}`} className="w-full h-full object-cover"
+                                            onError={e => { e.target.onerror = null; e.target.src = FALLBACK[0]; }} />
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Main image */}
+                            <div className="relative flex-1 overflow-hidden rounded-sm bg-gray-50 group select-none"
+                                style={{ maxHeight: 600, minHeight: 360 }}>
+                                <img
+                                    key={activeImg}
+                                    src={activeImg}
+                                    alt={product?.title || 'Product image'}
+                                    className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
+                                    style={{ minHeight: 360 }}
+                                    onError={e => { e.target.onerror = null; e.target.src = FALLBACK[0]; }}
+                                />
+
+                                {/* Stock badge */}
+                                {effStock !== null && effStock <= 10 && (
+                                    <div className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm">
+                                        Only {effStock} left
                                     </div>
                                 )}
 
-                                {/* Overlay Badges */}
-                                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                                    <span className="bg-[#0c1324]/80 backdrop-blur-md border border-[#f59e0b]/30 text-[#f59e0b] text-[10px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-md">
-                                        Verified Asset
-                                    </span>
-                                    <span className="bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 text-emerald-400 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-md flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                        In Stock
-                                    </span>
-                                </div>
+                                {/* Wishlist heart */}
+                                <button
+                                    onClick={() => { setWL(w => !w); showToast(wishlisted ? 'Removed from wishlist' : 'Added to wishlist!'); }}
+                                    className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center border shadow-sm transition-all cursor-pointer
+                                    ${wishlisted ? 'bg-red-50 border-red-200 text-red-500' : 'bg-white border-gray-200 text-gray-400 hover:text-red-400'}`}
+                                >
+                                    <svg viewBox="0 0 24 24" fill={wishlisted ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                    </svg>
+                                </button>
 
-                                {/* Previous / Next Buttons */}
-                                {productImages.length > 1 && (
+                                {/* Arrows */}
+                                {images.length > 1 && (
                                     <>
                                         <button
-                                            onClick={() => setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : productImages.length - 1))}
-                                            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#0c1324]/70 hover:bg-[#0c1324] border border-[#2e3447] text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                                            aria-label="Previous image"
+                                            onClick={() => setImgIdx(p => p > 0 ? p - 1 : images.length - 1)}
+                                            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                                         >
-                                            ‹
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 rotate-90"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                                         </button>
                                         <button
-                                            onClick={() => setSelectedImageIndex((prev) => (prev < productImages.length - 1 ? prev + 1 : 0))}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#0c1324]/70 hover:bg-[#0c1324] border border-[#2e3447] text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                                            aria-label="Next image"
+                                            onClick={() => setImgIdx(p => p < images.length - 1 ? p + 1 : 0)}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                                         >
-                                            ›
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 -rotate-90"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                                         </button>
+                                    </>
+                                )}
+
+                                {/* Mobile dot indicators */}
+                                {images.length > 1 && (
+                                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 sm:hidden">
+                                        {images.map((_, i) => (
+                                            <button key={i} onClick={() => setImgIdx(i)}
+                                                className={`h-1.5 rounded-full transition-all cursor-pointer ${i === imgIdx ? 'w-4 bg-gray-900' : 'w-1.5 bg-gray-400'}`} />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* ──────────────────────────────────────────
+                        RIGHT: Info panel — matches screenshot
+                    ────────────────────────────────────────── */}
+                        <div className="flex-1 lg:max-w-[440px] pt-4 lg:pt-1 space-y-5">
+
+                            {/* Seller / brand name */}
+                            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-400">
+                                {typeof product?.seller === 'object'
+                                    ? product.seller.fullname || 'Zentra Brand'
+                                    : 'Zentra Brand'}
+                            </p>
+
+                            {/* Product title */}
+                            <h1 className="text-2xl font-bold text-gray-900 leading-snug -mt-2">
+                                {product?.title || 'Unnamed Product'}
+                            </h1>
+
+                            {/* Rating */}
+                            <div className="flex items-center gap-2 text-xs -mt-1">
+                                <span className="inline-flex items-center gap-1 bg-green-600 text-white px-1.5 py-0.5 rounded-sm font-bold">
+                                    4.3
+                                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                                </span>
+                                <span className="text-gray-400">1,248 Ratings & 86 Reviews</span>
+                            </div>
+
+                            {/* Price */}
+                            <div className="flex items-baseline gap-3 flex-wrap">
+                                <span className="text-2xl font-extrabold text-gray-900">
+                                    {fmt(effPrice)}
+                                </span>
+                                {activeVariant?.price?.amount !== undefined && product?.price && (
+                                    <>
+                                        <span className="text-sm text-gray-400 line-through">{fmt(product.price)}</span>
+                                        <span className="text-sm font-bold text-green-600">
+                                            {Math.round((1 - parseFloat(activeVariant.price.amount) / parseFloat(product.price.amount)) * 100)}% OFF
+                                        </span>
                                     </>
                                 )}
                             </div>
 
-                            {/* Thumbnail Row */}
-                            {productImages.length > 1 && (
-                                <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
-                                    {productImages.map((imgUrl, index) => (
-                                        <button
-                                            key={index}
-                                            onClick={() => setSelectedImageIndex(index)}
-                                            className={`relative rounded-xl overflow-hidden border aspect-square bg-[#131b2e] transition-all cursor-pointer ${
-                                                selectedImageIndex === index
-                                                    ? 'border-[#f59e0b] ring-2 ring-[#f59e0b]/20 scale-[1.02]'
-                                                    : 'border-[#2e3447]/60 opacity-60 hover:opacity-100 hover:border-[#a08e7a]/40'
-                                            }`}
-                                        >
-                                            <img
-                                                src={imgUrl}
-                                                alt={`Thumbnail ${index + 1}`}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    e.target.onerror = null;
-                                                    e.target.src = defaultPlaceholderImages[index % defaultPlaceholderImages.length];
-                                                }}
-                                            />
-                                        </button>
-                                    ))}
-                                </div>
+                            {/* ═══ VARIANT ATTRIBUTE CHIPS ═══
+                            Shown directly after price, exactly like screenshot.
+                            Each attribute key gets its own labelled row.
+                        ════════════════════════════════ */}
+                            {hasVariants && Object.entries(attrOptions).map(([attrKey, values]) => {
+                                const isColor = isColorAttr(attrKey, values);
+                                return (
+                                    <div key={attrKey}>
+                                        {/* Attribute label row */}
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 mb-2">
+                                            {attrKey}
+                                            {sel[attrKey] && (
+                                                <span className="ml-2 text-gray-900 normal-case tracking-normal font-bold">{sel[attrKey]}</span>
+                                            )}
+                                        </p>
+
+                                        {/* Chips row */}
+                                        <div className="flex flex-wrap gap-2">
+                                            {values.map(val => {
+                                                const isActive = sel[attrKey] === val;
+                                                const isAvail = variants.some(v => {
+                                                    const a = v.attridutes || v.attributes || {};
+                                                    return String(a[attrKey]) === val;
+                                                });
+
+                                                if (isColor) {
+                                                    const hex = COLOUR_MAP[val.toLowerCase().trim()] || '#e5e7eb';
+                                                    return (
+                                                        <button
+                                                            key={val}
+                                                            onClick={() => isAvail && handleSel(attrKey, val)}
+                                                            disabled={!isAvail}
+                                                            title={val}
+                                                            className={`relative w-8 h-8 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center
+                                                            ${isActive ? 'border-gray-900 scale-110 shadow' : 'border-transparent hover:border-gray-400'}
+                                                            ${!isAvail ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                                            style={{ backgroundColor: hex }}
+                                                        >
+                                                            {isActive && (
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" className="w-3.5 h-3.5 drop-shadow">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                }
+
+                                                /* Text chip — matches screenshot exactly */
+                                                return (
+                                                    <button
+                                                        key={val}
+                                                        onClick={() => isAvail && handleSel(attrKey, val)}
+                                                        disabled={!isAvail}
+                                                        className={`relative px-4 py-1.5 text-xs font-bold uppercase tracking-wider border transition-all cursor-pointer rounded-sm
+                                                        ${isActive
+                                                                ? 'bg-gray-900 border-gray-900 text-white'
+                                                                : isAvail
+                                                                    ? 'bg-white border-gray-300 text-gray-700 hover:border-gray-600'
+                                                                    : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
+                                                            }`}
+                                                    >
+                                                        {!isAvail && (
+                                                            <span className="absolute inset-0 overflow-hidden rounded-sm pointer-events-none">
+                                                                <span className="absolute top-1/2 left-0 right-0 h-px bg-gray-300 -rotate-6 origin-center" />
+                                                            </span>
+                                                        )}
+                                                        {val}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            {/* Stock */}
+                            {effStock !== null && (
+                                <p className={`text-xs font-semibold uppercase tracking-widest
+                                ${effStock > 10 ? 'text-green-600' : effStock > 0 ? 'text-orange-500' : 'text-red-500'}`}>
+                                    {effStock > 10 ? `${effStock} In Stock` : effStock > 0 ? `Only ${effStock} Left!` : 'Out of Stock'}
+                                </p>
                             )}
 
-                            {/* Trust Specs */}
-                            <div className="grid grid-cols-2 gap-3 mt-4">
-                                <div className="bg-[#131b2e]/60 border border-[#2e3447]/50 rounded-xl p-3 flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/10 text-[#f59e0b] flex items-center justify-center shrink-0">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-white text-xs font-semibold">Instant Dispatch</h4>
-                                        <p className="text-[11px] text-[#a08e7a]/70">Verified within 2 hours</p>
-                                    </div>
-                                </div>
-                                <div className="bg-[#131b2e]/60 border border-[#2e3447]/50 rounded-xl p-3 flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-white text-xs font-semibold">Protected Trade</h4>
-                                        <p className="text-[11px] text-[#a08e7a]/70">Escrow backed guarantee</p>
-                                    </div>
+                            {/* Quantity */}
+                            <div className="flex items-center gap-3">
+                                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400">Qty</span>
+                                <div className="flex items-center border border-gray-300 rounded-sm">
+                                    <button onClick={() => setQty(q => Math.max(1, q - 1))}
+                                        className="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors text-lg cursor-pointer">−</button>
+                                    <span className="w-10 text-center text-sm font-bold text-gray-900">{qty}</span>
+                                    <button onClick={() => { const max = effStock ?? 10; setQty(q => q < max ? q + 1 : q); }}
+                                        className="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors text-lg cursor-pointer">+</button>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* RIGHT COLUMN: Product Info & Actions */}
-                        <div className="lg:col-span-6 flex flex-col justify-between">
-                            <div className="space-y-6">
-                                
-                                {/* Header Info: Seller & Date */}
-                                <div className="flex items-center justify-between gap-4 border-b border-[#2e3447]/60 pb-4">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-mono text-[#a08e7a]">Seller:</span>
-                                        <span className="text-xs font-mono text-white bg-[#131b2e] border border-[#2e3447] px-2.5 py-1 rounded-md flex items-center gap-1.5">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]"></span>
-                                            {product?.seller ? (typeof product.seller === 'object' ? (product.seller.fullname || product.seller._id) : product.seller) : 'Zentra Verified Merchant'}
-                                        </span>
-                                    </div>
-                                    <div className="text-xs font-mono text-[#a08e7a]/70">
-                                        Listed: {formatDate(product?.createdAt)}
-                                    </div>
-                                </div>
-
-                                {/* Title */}
-                                <div>
-                                    <h1 className="font-['Hanken_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight mb-2">
-                                        {product?.title || 'Unnamed Asset'}
-                                    </h1>
-                                    
-                                    {/* Product ID & Rating */}
-                                    <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
-                                        <div className="flex items-center gap-1 text-[#f59e0b]">
-                                            {'★'.repeat(5)}
-                                            <span className="text-white font-bold ml-1">4.9</span>
-                                            <span className="text-[#a08e7a]">(32 reviews)</span>
-                                        </div>
-                                        <span className="text-[#2e3447]">|</span>
-                                        <div className="flex items-center gap-1.5 text-[#a08e7a]">
-                                            <span>ID:</span>
-                                            <code className="text-[#f59e0b] bg-[#131b2e] px-1.5 py-0.5 rounded">
-                                                {product?._id || productId || 'N/A'}
-                                            </code>
-                                            <button
-                                                onClick={() => handleCopyId(product?._id || productId)}
-                                                className="hover:text-white transition-colors"
-                                                title="Copy ID"
-                                            >
-                                                {copiedId ? '✓' : '📋'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Price Box */}
-                                <div className="bg-gradient-to-r from-[#131b2e] to-[#0c1324] border border-[#2e3447] rounded-2xl p-5 shadow-lg relative overflow-hidden">
-                                    <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-32 h-32 bg-[#f59e0b]/10 rounded-full blur-2xl pointer-events-none"></div>
-                                    <span className="text-xs font-mono uppercase tracking-widest text-[#a08e7a]">Price</span>
-                                    <div className="flex items-baseline gap-3 mt-1">
-                                        <span className="font-['Hanken_Grotesk'] text-3xl sm:text-4xl font-extrabold text-[#f59e0b]">
-                                            {formatPrice(product?.price)}
-                                        </span>
-                                        <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                                            Tax Included
-                                        </span>
-                                    </div>
-                                    <p className="text-[#a08e7a]/70 text-xs mt-2">
-                                        Free express shipping on all domestic orders • 7-day hassle-free replacement
+                            {/* The Details — collapsible (matches screenshot label) */}
+                            <div className="border-t border-gray-200 pt-3">
+                                <button
+                                    onClick={() => setDetailOpen(o => !o)}
+                                    className="w-full flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-500 cursor-pointer hover:text-gray-800 transition-colors"
+                                >
+                                    The Details
+                                    {detailOpen ? <ChevronUp /> : <ChevronDown />}
+                                </button>
+                                {detailOpen && (
+                                    <p className="mt-2 text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                                        {product?.description || 'No description available for this product.'}
                                     </p>
-                                </div>
-
-                                {/* Quantity Selector */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-mono uppercase tracking-wider text-[#a08e7a]">Quantity</label>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center border border-[#2e3447] rounded-xl bg-[#131b2e] overflow-hidden">
-                                            <button
-                                                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                                                className="w-10 h-10 flex items-center justify-center text-white hover:bg-[#2e3447]/50 text-lg transition-colors cursor-pointer"
-                                                aria-label="Decrease quantity"
-                                            >
-                                                -
-                                            </button>
-                                            <span className="w-12 text-center text-sm font-bold text-white font-mono">
-                                                {quantity}
-                                            </span>
-                                            <button
-                                                onClick={() => setQuantity((q) => q + 1)}
-                                                className="w-10 h-10 flex items-center justify-center text-white hover:bg-[#2e3447]/50 text-lg transition-colors cursor-pointer"
-                                                aria-label="Increase quantity"
-                                            >
-                                                +
-                                            </button>
-                                        </div>
-                                        <span className="text-xs font-mono text-[#a08e7a]/70">
-                                            Only {Math.floor(Math.random() * 15) + 3} items left in stock
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* REQUIRED TWO ACTION BUTTONS */}
-                                <div className="pt-2 flex flex-col sm:flex-row gap-4">
-                                    {/* Add to Cart Button */}
-                                    <button
-                                        onClick={() => showToast(`[Demo] ${quantity} x "${product?.title || 'Product'}" added to cart!`)}
-                                        className="flex-1 py-3.5 px-6 rounded-xl font-bold text-white bg-[#131b2e] hover:bg-[#1c273e] border border-[#2e3447] hover:border-[#f59e0b]/50 transition-all flex items-center justify-center gap-2.5 active:scale-95 shadow-md group cursor-pointer"
-                                    >
-                                        <svg className="w-5 h-5 text-[#f59e0b] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 0a2 2 0 100 4 2 2 0 000-4z" />
-                                        </svg>
-                                        <span>Add to Cart</span>
-                                    </button>
-
-                                    {/* Buy Now Button */}
-                                    <button
-                                        onClick={() => showToast(`[Demo] Proceeding to checkout for "${product?.title || 'Product'}"...`)}
-                                        className="flex-1 py-3.5 px-6 rounded-xl font-bold text-[#0c1324] bg-[#f59e0b] hover:bg-[#d97706] transition-all flex items-center justify-center gap-2.5 active:scale-95 shadow-lg shadow-[#f59e0b]/20 group cursor-pointer"
-                                    >
-                                        <svg className="w-5 h-5 text-[#0c1324] group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                        </svg>
-                                        <span>Buy Now</span>
-                                    </button>
-                                </div>
-
-                                {/* Information Tabs */}
-                                <div className="border border-[#2e3447]/60 rounded-2xl bg-[#131b2e]/40 overflow-hidden mt-6">
-                                    <div className="flex border-b border-[#2e3447]/60 bg-[#0c1324]/50 font-mono text-xs">
-                                        <button
-                                            onClick={() => setActiveTab('description')}
-                                            className={`flex-1 py-3 px-4 font-semibold transition-colors cursor-pointer ${
-                                                activeTab === 'description'
-                                                    ? 'text-[#f59e0b] border-b-2 border-[#f59e0b] bg-[#131b2e]'
-                                                    : 'text-[#a08e7a] hover:text-white'
-                                            }`}
-                                        >
-                                            Description
-                                        </button>
-                                        <button
-                                            onClick={() => setActiveTab('details')}
-                                            className={`flex-1 py-3 px-4 font-semibold transition-colors cursor-pointer ${
-                                                activeTab === 'details'
-                                                    ? 'text-[#f59e0b] border-b-2 border-[#f59e0b] bg-[#131b2e]'
-                                                    : 'text-[#a08e7a] hover:text-white'
-                                            }`}
-                                        >
-                                            Details & Metadata
-                                        </button>
-                                    </div>
-
-                                    <div className="p-5 text-sm leading-relaxed text-[#a08e7a]">
-                                        {activeTab === 'description' ? (
-                                            <div className="space-y-3">
-                                                <p className="whitespace-pre-line text-white/90">
-                                                    {product?.description || 'No description provided for this product.'}
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3 font-mono text-xs">
-                                                <div className="flex justify-between py-1.5 border-b border-[#2e3447]/40">
-                                                    <span className="text-[#a08e7a]">Object ID:</span>
-                                                    <span className="text-white font-medium">{product?._id || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex justify-between py-1.5 border-b border-[#2e3447]/40">
-                                                    <span className="text-[#a08e7a]">Seller Reference:</span>
-                                                    <span className="text-white font-medium">
-                                                        {typeof product?.seller === 'object' ? product?.seller?._id : (product?.seller || 'N/A')}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between py-1.5 border-b border-[#2e3447]/40">
-                                                    <span className="text-[#a08e7a]">Created At:</span>
-                                                    <span className="text-white font-medium">{product?.createdAt || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex justify-between py-1.5 border-b border-[#2e3447]/40">
-                                                    <span className="text-[#a08e7a]">Updated At:</span>
-                                                    <span className="text-white font-medium">{product?.updatedAt || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex justify-between py-1.5">
-                                                    <span className="text-[#a08e7a]">Currency & Amount:</span>
-                                                    <span className="text-white font-medium">
-                                                        {product?.price?.currency || 'INR'} {product?.price?.amount || '0'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
+                                )}
                             </div>
+
+                            {/* CTA buttons — matches screenshot */}
+                            <div className="flex flex-col gap-3 pt-1">
+                                <button
+                                    onClick={() => showToast(`${qty} × "${product?.title}" added to cart!`)}
+                                    className="w-full py-3.5 bg-gray-900 text-white font-bold text-sm uppercase tracking-wider rounded-sm hover:bg-gray-700 active:scale-[0.98] transition-all cursor-pointer"
+                                >
+                                    Add to Cart
+                                </button>
+                                <button
+                                    onClick={() => showToast(`Proceeding to checkout…`)}
+                                    className="w-full py-3.5 border-2 border-gray-900 text-gray-900 font-bold text-sm uppercase tracking-wider rounded-sm hover:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer"
+                                >
+                                    Buy Now
+                                </button>
+                            </div>
+
+                            {/* Bottom info strip — matches screenshot footer row */}
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-2 pt-2 border-t border-gray-100 text-[10px] uppercase tracking-wider">
+                                {[
+                                    ['Shipping', 'Complimentary over INR 3,000'],
+                                    ['Returns', 'Within 14 days of delivery'],
+                                    ['Authenticity', '100% Guaranteed'],
+                                    ['Seller', typeof product?.seller === 'object'
+                                        ? product.seller.fullname || product.seller._id
+                                        : product?.seller || 'Zentra Verified'],
+                                ].map(([label, val]) => (
+                                    <div key={label}>
+                                        <span className="text-gray-400">{label}  </span>
+                                        <span className="text-gray-700 font-semibold">{val}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Delivery check */}
+                            <div className="border-t border-gray-100 pt-3 space-y-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400">Check Delivery</p>
+                                <div className="flex gap-2">
+                                    <input
+                                        value={pincode}
+                                        onChange={e => { setPincode(e.target.value.replace(/\D/g, '').slice(0, 6)); setDMsg(null); }}
+                                        placeholder="Enter PIN code"
+                                        className="flex-1 border border-gray-300 rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-gray-600 transition-colors"
+                                    />
+                                    <button onClick={checkDelivery}
+                                        className="px-4 py-2 text-sm font-bold border border-gray-300 rounded-sm hover:border-gray-600 hover:bg-gray-50 transition-colors cursor-pointer">
+                                        Check
+                                    </button>
+                                </div>
+                                {dMsg && <p className={`text-xs ${dMsg.startsWith('Delivery') ? 'text-green-600' : 'text-red-500'}`}>{dMsg}</p>}
+                            </div>
+
                         </div>
+                        {/* ── end right panel ── */}
+
                     </div>
+                    /* ── end product grid ── */
                 )}
             </main>
 
-            {/* Footer */}
-            <footer className="border-t border-[#2e3447]/60 bg-[#0c1324] py-8 text-center text-xs font-mono text-[#a08e7a]/60 mt-auto">
-                <div className="max-w-[1400px] mx-auto px-4">
-                    <p>© 2026 Zentra Trade Network. Product detail preview environment.</p>
+            {/* ════ FOOTER ════ */}
+            <footer className="border-t border-gray-200 py-6 text-center text-xs text-gray-400 mt-auto">
+                <p className="font-extrabold tracking-[0.18em] uppercase text-gray-700 text-sm mb-1">Zentra</p>
+                <p>© 2026 Zentra Trade Network. All rights reserved.</p>
+                <div className="flex justify-center gap-6 mt-3">
+                    <Link to="/" className="hover:text-gray-700 transition-colors">Home</Link>
+                    <a href="#" className="hover:text-gray-700 transition-colors">Privacy</a>
+                    <a href="#" className="hover:text-gray-700 transition-colors">Terms</a>
                 </div>
             </footer>
+
+            {/* keyframe for toast */}
+            <style>{`@keyframes fadeIn { from { opacity:0; transform:translateX(-50%) translateY(-8px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }`}</style>
         </div>
     );
-}
+}
