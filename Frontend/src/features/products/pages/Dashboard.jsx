@@ -427,6 +427,8 @@ export function Dashboard() {
 
                             return (
                                 <div
+
+                                    onClick={() => { navigate(`/seller/product/${product._id}`) }}
                                     key={product._id}
                                     className="bg-[#131b2e] border border-[#2e3447]/60 hover:border-[#f59e0b]/50 rounded-xl overflow-hidden transition-all duration-300 flex flex-col group shadow-lg shadow-black/20"
                                 >

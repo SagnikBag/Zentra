@@ -1,6 +1,6 @@
 import express from "express";
 import { authenticateSeller } from "../middleware/auth.middleware.js";
-import { createProduct, getProductDetails, getAllProducts, getSellerProducts } from "../controllers/product.controller.js";
+import { createProduct, getProductDetails, getAllProducts, getSellerProducts, addVariant, updateVariantStock, deleteVariant } from "../controllers/product.controller.js";
 import multer from 'multer';
 import { createProductValidator } from "../validator/product.validator.js";
 
@@ -22,4 +22,10 @@ router.get('/',getAllProducts);
 
 router.get('/detail/:id',getProductDetails)
 
+// Variant Management routes
+router.post('/:id/variants', authenticateSeller, upload.array('images', 5), addVariant);
+router.patch('/:productId/variants/:variantId/stock', authenticateSeller, updateVariantStock);
+router.delete('/:productId/variants/:variantId', authenticateSeller, deleteVariant);
+
 export default router
+
