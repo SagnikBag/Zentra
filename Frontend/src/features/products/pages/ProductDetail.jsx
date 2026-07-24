@@ -3,6 +3,9 @@ import { useParams, Link, useNavigate } from 'react-router';
 import { useProduct } from '../hooks/useProduct';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../../auth/hooks/useAuth';
+import { useCart } from '../../cart/hook/useCart';
+
+
 
 /* ─── colour detection helpers ───────────────────────────────────── */
 const COLOUR_MAP = {
@@ -37,6 +40,7 @@ export default function ProductDetail() {
     const navigate = useNavigate();
     const { handleGetProductById } = useProduct();
     const { handleLogout } = useAuth();
+    const { handleAddItem } = useCart();
 
     const rawUser = useSelector(s => s.auth.user);
     const user = useMemo(() => (rawUser?.user ? rawUser.user : rawUser), [rawUser]);
@@ -519,7 +523,20 @@ export default function ProductDetail() {
                             {/* CTA buttons — matches screenshot */}
                             <div className="flex flex-col gap-3 pt-1">
                                 <button
-                                    onClick={() => showToast(`${qty} × "${product?.title}" added to cart!`)}
+                                    onClick={async () => {
+                                        try {
+                                            const data = await handleAddItem({
+                                                productId: product._id,
+                                                variantId: activeVariant._id,
+                                                qty: qty,
+                                            });
+
+                                            showToast(`${qty} × "${product?.title}" added to cart!`);
+                                        } catch (error) {
+                                            console.error("Failed to add item to cart:", error);
+                                            showToast("Failed to add item to cart");
+                                        }
+                                    }}
                                     className="w-full py-3.5 bg-gray-900 text-white font-bold text-sm uppercase tracking-wider rounded-sm hover:bg-gray-700 active:scale-[0.98] transition-all cursor-pointer"
                                 >
                                     Add to Cart
