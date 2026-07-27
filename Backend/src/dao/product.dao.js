@@ -1,4 +1,4 @@
-import productModel from "../model/product.model.js";
+import productModel from "../model/product.model";
 
 export const stockVariant = async(productId,variantId) =>{
     const product = await productModel.findOne({
