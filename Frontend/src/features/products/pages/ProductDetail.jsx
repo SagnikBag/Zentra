@@ -58,6 +58,8 @@ export default function ProductDetail() {
     const [dMsg, setDMsg] = useState(null);
     const [detailOpen, setDetailOpen] = useState(false);
 
+
+
     /* variant selection: { attrKey: value } */
     const [sel, setSel] = useState({});
 
@@ -134,6 +136,9 @@ export default function ProductDetail() {
         });
         return best;
     }, [variants, sel, hasVariants]);
+
+    console.log({ product, activeVariant });
+
 
     /* effective values (variant → fallback to product) */
     const effPrice = useMemo(() =>
@@ -530,6 +535,8 @@ export default function ProductDetail() {
                                                 variantId: activeVariant._id,
                                                 qty: qty,
                                             });
+                                            console.log(data, "line 533");
+
 
                                             showToast(`${qty} × "${product?.title}" added to cart!`);
                                         } catch (error) {
