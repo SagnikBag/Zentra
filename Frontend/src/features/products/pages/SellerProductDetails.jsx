@@ -796,7 +796,7 @@ const SellerProductDetails = () => {
             setProduct(data);
             // seed stock drafts from current data
             const draft = {};
-            (data?.varient || []).forEach(v => { draft[v._id] = v.stock ?? 0; });
+            (data?.variants || []).forEach(v => { draft[v._id] = v.stock ?? 0; });
             setStockDraft(draft);
         } catch (err) {
             console.error('Failed to fetch product', err);
@@ -809,7 +809,7 @@ const SellerProductDetails = () => {
     useEffect(() => { fetchProduct(); }, [fetchProduct]);
 
     /* ── Metric helpers ─────────────────────────────────────────── */
-    const variants = product?.varient || [];
+    const variants = product?.variants || [];
     const totalInventory = variants.reduce((acc, v) => acc + (v.stock || 0), 0);
 
     /* ── Stock save ─────────────────────────────────────────────── */
@@ -838,7 +838,7 @@ const SellerProductDetails = () => {
             const updated = await handleDeleteVariant(productId, variantId);
             setProduct(updated);
             const draft = {};
-            (updated?.varient || []).forEach(v => { draft[v._id] = v.stock ?? 0; });
+            (updated?.variants || []).forEach(v => { draft[v._id] = v.stock ?? 0; });
             setStockDraft(draft);
             setConfirmDelete(null);
             showToast('success', 'Variant deleted.');
@@ -907,7 +907,7 @@ const SellerProductDetails = () => {
             const updated = await handleAddVariant(productId, formData);
             setProduct(updated);
             const draft = {};
-            (updated?.varient || []).forEach(v => { draft[v._id] = v.stock ?? 0; });
+            (updated?.variants || []).forEach(v => { draft[v._id] = v.stock ?? 0; });
             setStockDraft(draft);
             closeModal();
             showToast('success', 'Variant created successfully!');

@@ -120,10 +120,10 @@ export async function addVariant(req, res) {
             }
         };
 
-        if (!product.varient) {
-            product.varient = [];
+        if (!product.variants) {
+            product.variants = [];
         }
-        product.varient.push(newVariant);
+        product.variants.push(newVariant);
         await product.save();
 
         return res.status(201).json({
@@ -147,7 +147,7 @@ export async function updateVariantStock(req, res) {
             return res.status(404).json({ message: "Product not found", success: false });
         }
 
-        const variant = product.varient?.id(variantId) || product.varient?.find(v => v._id?.toString() === variantId);
+        const variant = product.variant?.id(variantId) || product.variant?.find(v => v._id?.toString() === variantId);
         if (!variant) {
             return res.status(404).json({ message: "Variant not found", success: false });
         }
@@ -186,8 +186,8 @@ export async function deleteVariant(req, res) {
             return res.status(404).json({ message: "Product not found", success: false });
         }
 
-        if (product.varient) {
-            product.varient = product.varient.filter(v => v._id?.toString() !== variantId);
+        if (product.variant) {
+            product.variant = product.variant.filter(v => v._id?.toString() !== variantId);
             await product.save();
         }
 
@@ -200,4 +200,4 @@ export async function deleteVariant(req, res) {
         console.error("Error deleting variant:", error);
         return res.status(500).json({ message: error.message || "Failed to delete variant", success: false });
     }
-}
+}

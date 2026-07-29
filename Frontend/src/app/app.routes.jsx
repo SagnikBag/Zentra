@@ -37,23 +37,23 @@ export const routes = createBrowserRouter([
             {
                 path: '/seller/create-product',
                 element:
-                    <Protected role="seller">
-                        <CreateProduct />
-                    </Protected>
+                    // <Protected role="seller">
+                    <CreateProduct />
+                // </Protected>
             },
             {
                 path: '/seller/dashboard',
                 element:
-                    <Protected role="seller">
-                        <Dashboard />
-                    </Protected>
+                    // <Protected role="seller">
+                    <Dashboard />
+                // </Protected>
             },
             {
                 path: '/seller/product/:productId',
                 element:
-                    <Protected role="seller">
-                        <SellerProductDetails />
-                    </Protected>
+                    // <Protected role="seller">
+                    <SellerProductDetails />
+                // </Protected>
             }
         ]
     }

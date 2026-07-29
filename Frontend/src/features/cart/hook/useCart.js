@@ -6,8 +6,8 @@ import { setItems } from "../state/cart.slice";
 export const useCart = () => {
     const dispatch = useDispatch();
 
-    async function handleAddItem({ productId, variantId }) {
-        const data = await addItem({ productId, variantId })
+    async function handleAddItem({ productId, variantId, quantity }) {
+        const data = await addItem({ productId, variantId, quantity })
         return data
     }
 

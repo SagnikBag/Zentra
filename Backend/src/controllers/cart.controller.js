@@ -6,7 +6,13 @@ import { stockVariant } from "../dao/product.dao.js";
 
 export const addToCart = async(req,res)=>{
 
+      console.log(req.params);
+
     const {productId,variantId} = req.params;
+    const {quantity = 1} = req.body;
+
+   
+    
 
     const product = await productModel.findOne({
         _id:productId,
@@ -18,7 +24,7 @@ export const addToCart = async(req,res)=>{
      
 
     if(!product){
-        res.status(404).json({
+        return res.status(404).json({
             message:"product or variant not found",
             success:false
         })
@@ -26,8 +32,8 @@ export const addToCart = async(req,res)=>{
 
     const stock = await stockVariant(productId,variantId)
 
-    const cart = (await cartModel.findOne({user: req.user._id})) || (await cartModel.create({user:
-        req.user._id
+    const cart = (await cartModel.findOne({user: req.user._id})) || (await cartModel.create(
+        {user:req.user._id
     }))
 
 
@@ -63,7 +69,7 @@ export const addToCart = async(req,res)=>{
 
     cart.items.push({
         product: productId,
-        variant:varianId,
+        variant:variantId,
         quantity,
         price:product.price
     })

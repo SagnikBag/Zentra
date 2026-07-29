@@ -103,12 +103,14 @@ export default function ProductDetail() {
     useEffect(() => { setSel({}); setImgIdx(0); }, [product?._id]);
 
     /* ─── variants ─── */
-    const variants = useMemo(() => Array.isArray(product?.varient) ? product.varient : [], [product]);
+    const variants = useMemo(() => Array.isArray(product?.variants) ? product.variants : [], [product]);
+
+    console.log("raw product.variants:", product?.variants);
 
     const attrOptions = useMemo(() => {
         const map = {};
         variants.forEach(v => {
-            const attrs = v.attridutes || v.attributes || {};
+            const attrs = v.attributes || v.attributes || {};
             Object.entries(attrs).forEach(([k, val]) => {
                 if (!map[k]) map[k] = new Set();
                 map[k].add(String(val));
@@ -529,13 +531,16 @@ export default function ProductDetail() {
                             <div className="flex flex-col gap-3 pt-1">
                                 <button
                                     onClick={async () => {
+
+
+
                                         try {
-                                            const data = await handleAddItem({
+                                            await handleAddItem({
                                                 productId: product._id,
                                                 variantId: activeVariant._id,
-                                                qty: qty,
+                                                quantity: qty,
                                             });
-                                            console.log(data, "line 533");
+
 
 
                                             showToast(`${qty} × "${product?.title}" added to cart!`);

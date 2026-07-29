@@ -29,7 +29,7 @@ const productSchema = new mongoose.Schema({
 
         }
     ],
-    varient:[
+    variants:[
         {
             images: [
                 {
@@ -43,7 +43,7 @@ const productSchema = new mongoose.Schema({
                 type:Number,
                 default:0
             },
-            attridutes:{
+            attributes:{
                 type:Map,
                 of: String
             },
