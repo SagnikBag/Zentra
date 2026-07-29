@@ -537,7 +537,7 @@ export default function ProductDetail() {
                                         try {
                                             await handleAddItem({
                                                 productId: product._id,
-                                                variantId: activeVariant._id,
+                                                variantsId: activeVariant._id,
                                                 quantity: qty,
                                             });
 
