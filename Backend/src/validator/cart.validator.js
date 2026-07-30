@@ -18,3 +18,10 @@ export const validateAddToCart = [
 
     validateRequest
 ]
+
+export const validateIncrementCartitemQuantity = [
+    param('productId').isMongoId().withMessage("Invalid product Id"),
+    param('variantId').optional().isMongoId().withMessage("Invalid variant Id"),
+
+    validateRequest
+]

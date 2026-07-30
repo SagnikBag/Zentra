@@ -1,26 +1,52 @@
 import { useDispatch } from "react-redux";
-import { addItem, getCart } from "../service/cart.api";
-import { addItem as addToCart } from "../state/cart.slice";
-import { setItems } from "../state/cart.slice";
+import { addItem, getCart, incrementCartItemApi } from "../service/cart.api";
+import { setItems, updateQuantity, removeItem, clearCart, incrementCartItem } from "../state/cart.slice";
 
 export const useCart = () => {
     const dispatch = useDispatch();
 
     async function handleAddItem({ productId, variantsId, quantity }) {
-        const data = await addItem({ productId, variantsId, quantity })
-        return data
+        const data = await addItem({ productId, variantsId, quantity });
+        return data;
     }
 
     async function handleGetCart() {
-        const data = await getCart();
+        try {
+            const data = await getCart();
+            console.log("GET CART RESPONSE:", data);
+            if (data?.cart?.items) {
+                dispatch(setItems(data.cart.items));
+            }
+            return data;
+        } catch (error) {
+            console.error("Error fetching cart:", error);
+        }
+    }
 
-        console.log("GET CART RESPONSE:", data);
-        dispatch(setItems(data.cart.items));
+    async function handleUpdateQuantity(itemId, newQty) {
+        if (newQty < 1) return;
+        dispatch(updateQuantity({ itemId, quantity: newQty }));
+    }
 
+    async function handleRemoveItem(itemId) {
+        dispatch(removeItem(itemId));
+    }
 
+    async function handleClearCart() {
+        dispatch(clearCart());
+    }
+    async function handleIncrementCartItem({ productId, variantsId }) {
+        const data = await incrementCartItemApi({ productId, variantsId })
+
+        dispatch(incrementCartItem({ productId, variantsId }))
     }
 
     return {
-        handleAddItem, handleGetCart
-    }
-}
+        handleAddItem,
+        handleGetCart,
+        handleUpdateQuantity,
+        handleRemoveItem,
+        handleClearCart,
+        handleIncrementCartItem
+    };
+};

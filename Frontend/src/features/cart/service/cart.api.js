@@ -22,3 +22,8 @@ export const getCart = async () => {
     return response.data
 }
 
+export const incrementCartItemApi = async ({ productId, variantsId }) => {
+    const response = await cartApiInstance.patch('/quantity/increment/${productId}/${variantsId}')
+    return response.data
+}
+
