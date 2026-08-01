@@ -31,7 +31,7 @@ export function Login() {
                 }
                 else if (user.role == 'seller') {
 
-                    navigate('/seller/dashboard')
+                    navigate('/seller/dashboar')
                 }
             }, 1500);
 
