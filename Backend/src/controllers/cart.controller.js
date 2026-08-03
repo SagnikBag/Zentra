@@ -81,8 +81,6 @@ export const addToCart = async(req,res)=>{
         success:true
     })
 }
-
-
 export const getCart = async(req,res)=>{
 
     const user = req.user
@@ -99,7 +97,6 @@ export const getCart = async(req,res)=>{
         cart
     })
 }
-
 export const incrementCartItemQuantity = async(req,res)=>{
     const {productId,variantId} = req.params
 
