@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 
 function App() {
 
-  const { handleGetme } = useAuth()
+  const {handleGetme} = useAuth()
 
   const user = useSelector(state => state.auth.user)
 
