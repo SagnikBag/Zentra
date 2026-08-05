@@ -81,7 +81,7 @@ export async function getProductDetails(req,res){
     })
 }
 
-export async function addVariant(req, res) {
+export async function addVariant(req,res) {
     try {
         const { id } = req.params;
         const { stock, priceAmount, priceCurrency, attributes } = req.body;
