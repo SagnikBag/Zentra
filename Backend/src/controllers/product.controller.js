@@ -80,7 +80,6 @@ export async function getProductDetails(req,res){
         product
     })
 }
-
 export async function addVariant(req,res) {
     try {
         const { id } = req.params;
@@ -136,7 +135,6 @@ export async function addVariant(req,res) {
         return res.status(500).json({ message: error.message || "Failed to add variant", success: false });
     }
 }
-
 export async function updateVariantStock(req, res) {
     try {
         const { productId, variantId } = req.params;
@@ -176,7 +174,6 @@ export async function updateVariantStock(req, res) {
         return res.status(500).json({ message: error.message || "Failed to update variant stock", success: false });
     }
 }
-
 export async function deleteVariant(req, res) {
     try {
         const { productId, variantId } = req.params;
