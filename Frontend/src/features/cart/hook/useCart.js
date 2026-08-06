@@ -31,7 +31,6 @@ export const useCart = () => {
     async function handleRemoveItem(itemId) {
         dispatch(removeItem(itemId));
     }
-
     async function handleClearCart() {
         dispatch(clearCart());
     }

@@ -80,60 +80,114 @@ export async function getProductDetails(req,res){
         product
     })
 }
-export async function addVariant(req,res) {
-    try {
-        const { id } = req.params;
-        const { stock, priceAmount, priceCurrency, attributes } = req.body;
+// export async function addVariant(req,res) {
+//     try {
+//         const { id } = req.params;
+//         const { stock, priceAmount, priceCurrency, attributes } = req.body;
 
-        const product = await productModel.findById(id);
-        if (!product) {
-            return res.status(404).json({ message: "Product not found", success: false });
-        }
+//         const product = await productModel.findById(id);
+//         if (!product) {
+//             return res.status(404).json({ message: "Product not found", success: false });
+//         }
 
-        let images = [];
-        if (req.files && req.files.length > 0) {
-            images = await Promise.all(req.files.map(async (file) => {
-                return await uploadFile({
-                    buffer: file.buffer,
-                    fileName: file.originalname
-                });
-            }));
-        }
+//         let images = [];
+//         if (req.files && req.files.length > 0) {
+//             images = await Promise.all(req.files.map(async (file) => {
+//                 return await uploadFile({
+//                     buffer: file.buffer,
+//                     fileName: file.originalname
+//                 });
+//             }));
+//         }
 
-        let parsedAttributes = attributes;
-        if (typeof attributes === 'string') {
-            try {
-                parsedAttributes = JSON.parse(attributes);
-            } catch (e) {
-                parsedAttributes = {};
-            }
-        }
+//         let parsedAttributes = attributes;
+//         if (typeof attributes === 'string') {
+//             try {
+//                 parsedAttributes = JSON.parse(attributes);
+//             } catch (e) {
+//                 parsedAttributes = {};
+//             }
+//         }
 
-        const newVariant = {
-            images: images.length > 0 ? images : [],
-            stock: Number(stock) || 0,
-            attridutes: parsedAttributes || {},
-            price: {
-                amount: Number(priceAmount) || 0,
-                currency: priceCurrency || "INR"
-            }
-        };
+//         const newVariant = {
+//             images: images.length > 0 ? images : [],
+//             stock: Number(stock) || 0,
+//             attridutes: parsedAttributes || {},
+//             price: {
+//                 amount: Number(priceAmount) || 0,
+//                 currency: priceCurrency || "INR"
+//             }
+//         };
 
-        if (!product.variants) {
-            product.variants = [];
-        }
-        product.variants.push(newVariant);
-        await product.save();
+//         if (!product.variants) {
+//             product.variants = [];
+//         }
+//         product.variants.push(newVariant);
+//         await product.save();
 
-        return res.status(201).json({
-            message: "Variant created successfully",
-            success: true,
-            product
-        });
-    } catch (error) {
-        console.error("Error adding variant:", error);
-        return res.status(500).json({ message: error.message || "Failed to add variant", success: false });
+//         return res.status(201).json({
+//             message: "Variant created successfully",
+//             success: true,
+//             product
+//         });
+//     } catch (error) {
+//         console.error("Error adding variant:", error);
+//         return res.status(500).json({ message: error.message || "Failed to add variant", success: false });
+//     }
+// }
+
+export async function addVariant(req, res) {
+
+    const productId = req.params.productId;
+
+    const product = await productModel.findOne({
+        _id: productId,
+        seller: req.user._id
+    });
+
+    if (!product) {
+        return res.status(404).json({
+            message: "Product not found",
+            success: false
+        })
     }
+
+    const files = req.files;
+    const images = [];
+    if (files || files.length !== 0) {
+        (await Promise.all(files.map(async (file) => {
+            const image = await uploadFile({
+                buffer: file.buffer,
+                fileName: file.originalname
+            })
+            return image
+        }))).map(image => images.push(image))
+    }
+
+    const price = req.body.priceAmount
+    const stock = req.body.stock
+    const attributes = JSON.parse(req.body.attributes || "{}")
+
+    console.log(price)
+
+    product.variants.push({
+        images,
+        price: {
+            amount: Number(price) || product.price.amount,
+            currency: req.body.priceCurrency || product.price.currency
+        },
+        stock,
+        attributes
+    })
+
+    await product.save();
+
+    return res.status(200).json({
+        message: "Product variant added successfully",
+        success: true,
+        product
+    })
+
 }
 export async function updateVariantStock(req, res) {
     try {
