@@ -2,6 +2,7 @@ import cartModel from "../model/cart.model.js";
 import productModel from "../model/product.model.js";
 import { stockVariant } from "../dao/product.dao.js";
 import mongoose from "mongoose";
+import { createOrder } from "../services/payment.service.js";
 
 
 
@@ -199,4 +200,13 @@ export const incrementCartItemQuantity = async(req,res)=>{
         message:"cart item quantity incremented successfully",
         success: true
     })
+}
+export const createOrderController = async(req,res)=>{
+  const order = await createOrder ({amount: 1000, currency: 'INR'})
+
+  return res.status(200).json({
+    message: "Order created siccessfully",
+    success: true,
+    order
+  })
 }

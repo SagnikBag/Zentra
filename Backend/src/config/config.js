@@ -19,10 +19,19 @@ if(!process.env.IMAGEKIT_PRIVATE_KEY){
     console.error("PRIVATE_KEY is not defined in the enviroment variable")
 }
 
+if(!process.env.RAZORPAY_TEST_KEY_ID){
+    console.error("RAZORPAY_TEST_KEY_ID is not defined in the enviroment variable")
+}
+if(!process.env.RAZORPAY_TEST_KEY_SECRET){
+    console.error("RAZORPAY_TEST_KEY_SECRET is not defined in the enviroment variable")
+}
+
 export const config = {
     MONGO_URI: process.env.MONGO_URI,
     JWT_SECRET: process.env.JWT_SECRET,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET:process.env.GOOGLE_CLIENT_SECRET,
-    IMAGEKIT_PRIVATE_KEY:process.env.IMAGEKIT_PRIVATE_KEY
+    IMAGEKIT_PRIVATE_KEY:process.env.IMAGEKIT_PRIVATE_KEY,
+    RAZORPAY_TEST_KEY_ID: process.env.RAZORPAY_TEST_KEY_ID,
+    RAZORPAY_TEST_KEY_SECRET: process.env.RAZORPAY_TEST_KEY_SECRET
 }
