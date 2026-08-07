@@ -3,6 +3,8 @@ import productModel from "../model/product.model.js";
 import { stockVariant } from "../dao/product.dao.js";
 import mongoose from "mongoose";
 import { createOrder } from "../services/payment.service.js";
+import { getCartDetails } from "../dao/cart.dao.js";
+import paymentModel from "../model/payment.model.js";
 
 
 
@@ -35,15 +37,16 @@ export const addToCart = async(req,res)=>{
     const stock = await stockVariant(productId,variantId)
 
     const cart = (await cartModel.findOne({user: req.user._id})) || (await cartModel.create(
-        {user:req.user._id
-    }))
+        {user:req.user._id, items: []}
+    ))
 
 
     const isProductAlreadyCart = cart.items.some(item => item.product.toString() === productId && 
-    item.variant?.toString() === variantId)
+    (item.variants?.toString() === variantId || item.variant?.toString() === variantId))
 
     if(isProductAlreadyCart){
-         const quantityInCart = cart.items.find(item => item.product.toString() === productId && item.variant?.toString() === variantId).quantity
+         const cartItem = cart.items.find(item => item.product.toString() === productId && (item.variants?.toString() === variantId || item.variant?.toString() === variantId))
+         const quantityInCart = cartItem ? cartItem.quantity : 0
     
           if (quantityInCart + quantity > stock) {
             return res.status(400).json({
@@ -52,8 +55,12 @@ export const addToCart = async(req,res)=>{
             })
         }
         await cartModel.findOneAndUpdate(
-            {user: req.user._id,"items.product": productId, "items.variant":variantId},
-            {$inc:{"items.quantity":quantity}},
+            {
+                user: req.user._id,
+                "items.product": productId,
+                $or: [{ "items.variants": variantId }, { "items.variant": variantId }]
+            },
+            {$inc:{"items.$.quantity":quantity}},
             {new:true}
         )
 
@@ -65,13 +72,13 @@ export const addToCart = async(req,res)=>{
     if(quantity> stock){
         return res.status(400).json({
             message:`Only ${stock} items left in stock`,
-            success: true
+            success: false
         })
     }
 
     cart.items.push({
         product: productId,
-        variant:variantId,
+        variants: variantId,
         quantity,
         price:product.price
     })
@@ -87,66 +94,11 @@ export const getCart = async(req,res)=>{
 
     const user = req.user
 
-    let cart = (await cartModel.aggregate(
-  [
-    {
-      $match: {
-        user: new mongoose.Types.ObjectId(user._id)
-      }
-    },
-    { $unwind: { path: '$items' } },
-    {
-      $lookup: {
-        from: 'products',
-        localField: 'items.product',
-        foreignField: '_id',
-        as: 'items.product'
-      }
-    },
-    { $unwind: { path: '$items.product' } },
-    {
-      $unwind: { path: '$items.product.variants' }
-    },
-    {
-      $match: {
-        $expr: {
-          $eq: [
-            '$items.variants',
-            '$items.product.variant._id'
-          ]
-        }
-      }
-    },
-    {
-      $addFields: {
-        itemPrice: {
-          price: {
-            $multiply: [
-              '$items.quantity',
-              '$items.product.variants.price.amount'
-            ]
-          },
-          currency:
-            '$items.product.variants.price.currency'
-        }
-      }
-    },
-    {
-      $group: {
-        _id: '$_id',
-        totalPrice: { $sum: '$itemPrice.price' },
-        currency: {
-          $first: '$itemPrice.currency'
-        },
-        items: { $push: '$items' }
-      }
-    }
-  ],
-  { maxTimeMS: 60000, allowDiskUse: true }
-))[0];
+    let cart = await getCartDetails(user._id)
+
 
     if(!cart){
-        cart = await cartModel.create({user:user._id})
+        cart = (await cartModel.findOne({user:user._id})) || (await cartModel.create({user:user._id, items: []}))
     }
 
     return res.status(200).json({
@@ -160,7 +112,7 @@ export const incrementCartItemQuantity = async(req,res)=>{
 
     const product = await productModel.findOne({
         _id: productId,
-        "variant._id": variantId
+        "variants._id": variantId
     })
 
     if(!product){
@@ -170,7 +122,7 @@ export const incrementCartItemQuantity = async(req,res)=>{
         })
     }
 
-    const cart = await cartModel.findOne({user:user._id})
+    const cart = await cartModel.findOne({user: req.user._id})
 
     if(!cart){
         return res.status(404).json({
@@ -181,7 +133,7 @@ export const incrementCartItemQuantity = async(req,res)=>{
 
     const stock = await stockVariant(productId,variantId)
 
-    const itemQuantityInCart = cart.items.find(item=> item.product.toString() === productId && item.variant?.toString() === variantId)?.quantity || 0
+    const itemQuantityInCart = cart.items.find(item=> item.product.toString() === productId && (item.variants?.toString() === variantId || item.variant?.toString() === variantId))?.quantity || 0
 
     if (itemQuantityInCart + 1 > stock){
         return res.status(400).json({
@@ -191,7 +143,11 @@ export const incrementCartItemQuantity = async(req,res)=>{
     }
 
     await cartModel.findOneAndUpdate(
-        {user: req.user._id, 'items.product': productId, "items.variant":variantId},
+        {
+            user: req.user._id,
+            'items.product': productId,
+            $or: [{ "items.variants": variantId }, { "items.variant": variantId }]
+        },
         {$inc:{"items.$.quantity": 1}},
         {new: true}
     )
@@ -202,7 +158,46 @@ export const incrementCartItemQuantity = async(req,res)=>{
     })
 }
 export const createOrderController = async(req,res)=>{
-  const order = await createOrder ({amount: 1000, currency: 'INR'})
+
+  const cart = await getCartDetails(req.user._id) 
+
+  console.log(JSON.stringify(cart, null, 2));
+
+  if(!cart){
+    return res.status(404).json({
+      message: "Cart is empty",
+      success: false
+    })
+  }
+
+  const order = await createOrder ({amount: cart.totalPrice, currency: cart.currency})
+
+  const payment = await paymentModel.create({
+    user: req.user._id,
+    razorpay:{
+        orderId: order.id
+    },
+    price:{
+        amount: cart.totalPrice,
+        currency: cart.currency
+    },
+
+    orderItems: cart.items.map(item =>({
+
+       
+        title: item.product.title,
+        productId: item.product._id,
+        variantId: item.variant,
+        quantity: item.quantity,
+        images: item.product.images,
+        description: item.product.description,
+        price: {
+            
+            amount: item.price.amount,
+            currency: item.price.currency
+        }
+    }))
+  })
 
   return res.status(200).json({
     message: "Order created siccessfully",

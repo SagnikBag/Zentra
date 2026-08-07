@@ -9,10 +9,13 @@ const cartSlice = createSlice({
     },
     reducers: {
         setItems: (state, action) => {
-            state.items = action.payload,
+            if (Array.isArray(action.payload)) {
+                state.items = action.payload;
+            } else if (action.payload && Array.isArray(action.payload.items)) {
+                state.items = action.payload.items;
                 state.totalPrice = action.payload.totalPrice;
-            state.currency = action.payload.currency;
-
+                state.currency = action.payload.currency;
+            }
         },
         updateQuantity: (state, action) => {
             const { itemId, quantity } = action.payload;
