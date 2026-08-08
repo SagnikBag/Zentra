@@ -1,1 +1,147 @@
+/* =========================================================
+   ZENTRA GLOBAL DESIGN SYSTEM
+   ========================================================= */
+
 @import "tailwindcss";
+
+/* ── CSS Custom Properties ───────────────────────────────── */
+:root {
+  /* Background layers */
+  --z-bg:        #09090b;
+  --z-surface:   #18181b;
+  --z-surface-2: #27272a;
+  --z-border:    #3f3f46;
+  --z-border-2:  #52525b;
+
+  /* Text */
+  --z-text:       #fafafa;
+  --z-text-2:     #a1a1aa;
+  --z-text-muted: #71717a;
+
+  /* Accent (amber) */
+  --z-accent:        #f59e0b;
+  --z-accent-hover:  #d97706;
+  --z-accent-light:  rgba(245,158,11,0.12);
+  --z-accent-border: rgba(245,158,11,0.25);
+
+  /* Semantic */
+  --z-success: #10b981;
+  --z-error:   #f87171;
+  --z-warning: #fbbf24;
+
+  /* Typography */
+  --z-font:      'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --z-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Radii */
+  --z-r-sm: 8px;
+  --z-r-md: 12px;
+  --z-r-lg: 16px;
+  --z-r-xl: 20px;
+
+  /* Shadows */
+  --z-shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --z-shadow-md: 0 4px 12px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.4);
+  --z-shadow-lg: 0 16px 40px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4);
+  --z-shadow-amber: 0 8px 24px rgba(245,158,11,0.2);
+
+  /* Transitions */
+  --z-transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --z-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Base ────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--z-font);
+  background-color: var(--z-bg);
+  color: var(--z-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ── Typography Utilities ────────────────────────────────── */
+.z-heading {
+  font-family: var(--z-font);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--z-text);
+  line-height: 1.15;
+}
+.z-mono { font-family: var(--z-font-mono); }
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--z-bg); }
+::-webkit-scrollbar-thumb { background: var(--z-border); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--z-border-2); }
+
+/* ── Animations ──────────────────────────────────────────── */
+@keyframes z-fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes z-fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes z-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes z-slide-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes z-slide-in-left {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes z-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+@keyframes z-pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.z-animate-fade-in     { animation: z-fade-in 0.4s ease both; }
+.z-animate-fade-in-up  { animation: z-fade-in-up 0.5s ease both; }
+.z-animate-scale-in    { animation: z-scale-in 0.3s ease both; }
+.z-animate-slide-right { animation: z-slide-in-right 0.4s ease both; }
+.z-animate-slide-left  { animation: z-slide-in-left 0.4s ease both; }
+
+/* Stagger helper */
+.z-stagger-1 { animation-delay: 0.05s; }
+.z-stagger-2 { animation-delay: 0.10s; }
+.z-stagger-3 { animation-delay: 0.15s; }
+.z-stagger-4 { animation-delay: 0.20s; }
+.z-stagger-5 { animation-delay: 0.25s; }
+
+/* Skeleton shimmer */
+.z-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--z-surface) 25%,
+    var(--z-surface-2) 50%,
+    var(--z-surface) 75%
+  );
+  background-size: 800px 100%;
+  animation: z-shimmer 1.5s infinite linear;
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--z-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Image utilities ─────────────────────────────────────── */
+img { display: block; }

@@ -2,17 +2,115 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router';
 import { useProduct } from '../hooks/useProduct';
-import { useAuth } from '../../auth/hooks/useAuth';
+import { ProductCardSkeleton } from '../../../components/ui/Skeleton';
+import { EmptyProductsState } from '../../../components/ui/EmptyState';
 
+/* ── Icons ─────────────────────────────────────────────── */
+const SearchIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+    </svg>
+);
+const GridIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+    </svg>
+);
+const ListIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+    </svg>
+);
+const ArrowRightIcon = () => (
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+    </svg>
+);
+
+/* ── Product Card ──────────────────────────────────────── */
+function ProductCard({ product, onView }) {
+    const mainImage = product.images?.[0]?.url;
+    const price = formatPrice(product.price);
+
+    return (
+        <div
+            onClick={() => onView(product._id)}
+            className="group bg-[#18181b] border border-[#27272a] hover:border-[#3f3f46] rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)] hover:-translate-y-0.5 flex flex-col"
+        >
+            {/* Image */}
+            <div className="relative h-52 bg-[#09090b] overflow-hidden flex-shrink-0">
+                {mainImage ? (
+                    <img
+                        src={mainImage}
+                        alt={product.title}
+                        className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                        loading="lazy"
+                    />
+                ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-[#3f3f46]">
+                        <svg className="w-10 h-10 mb-2 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                        </svg>
+                        <span className="text-xs text-[#52525b]">No image</span>
+                    </div>
+                )}
+                {/* Price badge */}
+                <div className="absolute top-3 right-3 bg-[#09090b]/90 backdrop-blur-sm border border-[#3f3f46]/60 text-[#f59e0b] font-bold text-xs px-2.5 py-1 rounded-lg font-mono shadow-lg">
+                    {price}
+                </div>
+                {/* Image count */}
+                {product.images?.length > 1 && (
+                    <div className="absolute bottom-3 left-3 bg-[#09090b]/80 backdrop-blur-sm border border-[#27272a] text-[#71717a] text-[10px] font-mono px-2 py-0.5 rounded-md">
+                        +{product.images.length - 1} more
+                    </div>
+                )}
+            </div>
+
+            {/* Body */}
+            <div className="p-5 flex flex-col flex-1 justify-between">
+                <div>
+                    <h3 className="font-semibold text-[#fafafa] text-sm leading-snug line-clamp-1 group-hover:text-[#f59e0b] transition-colors duration-200 mb-1.5">
+                        {product.title || 'Untitled Product'}
+                    </h3>
+                    <p className="text-[#71717a] text-xs leading-relaxed line-clamp-2">
+                        {product.description || 'No description provided.'}
+                    </p>
+                </div>
+
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#27272a]">
+                    <span className="text-[11px] font-mono text-[#52525b]">
+                        {formatDate(product.createdAt)}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[#f59e0b] text-xs font-semibold group-hover:gap-2 transition-all duration-200">
+                        View <ArrowRightIcon />
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ── Helpers ───────────────────────────────────────────── */
+function formatPrice(price) {
+    if (!price) return '$0';
+    const amount = parseFloat(price.amount || 0);
+    const currency = price.currency || 'USD';
+    try {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount);
+    } catch {
+        return `${currency} ${amount.toFixed(2)}`;
+    }
+}
+
+function formatDate(iso) {
+    if (!iso) return 'N/A';
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/* ── Home Page ─────────────────────────────────────────── */
 const Home = () => {
     const { handleGetAllProducts } = useProduct();
-    const { handleLogout } = useAuth();
     const navigate = useNavigate();
-
-    const rawUser = useSelector(state => state.auth.user);
-    const user = useMemo(() => {
-        return rawUser?.user ? rawUser.user : rawUser;
-    }, [rawUser]);
 
     const rawProducts = useSelector(state => state.product.products);
     const products = useMemo(() => {
@@ -22,486 +120,237 @@ const Home = () => {
     }, [rawProducts]);
 
     const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('newest');
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
-    const [selectedProduct, setSelectedProduct] = useState(null);
-    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-    const [copiedId, setCopiedId] = useState(null);
+    const [viewMode, setViewMode] = useState('grid');
 
-    const fetchProducts = async (isManual = false) => {
-        if (isManual) setRefreshing(true);
-        else setLoading(true);
-
-        try {
-            await handleGetAllProducts();
-        } catch (err) {
-            console.error("Failed to fetch products:", err);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
+    const fetchProducts = async () => {
+        setLoading(true);
+        try { await handleGetAllProducts(); }
+        catch (err) { console.error('Failed to fetch products:', err); }
+        finally { setLoading(false); }
     };
 
-    useEffect(() => {
-        fetchProducts();
-    }, []);
+    useEffect(() => { fetchProducts(); }, []);
 
-    // Filter & Sort products
     const filteredProducts = useMemo(() => {
         let result = [...products];
-
         if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(
-                (p) =>
-                    p.title?.toLowerCase().includes(query) ||
-                    p.description?.toLowerCase().includes(query) ||
-                    p._id?.toLowerCase().includes(query)
+            const q = searchQuery.toLowerCase();
+            result = result.filter(p =>
+                p.title?.toLowerCase().includes(q) ||
+                p.description?.toLowerCase().includes(q)
             );
         }
-
         result.sort((a, b) => {
-            if (sortBy === 'newest') {
-                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-            }
-            if (sortBy === 'oldest') {
-                return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
-            }
-            if (sortBy === 'price-high') {
-                return parseFloat(b.price?.amount || 0) - parseFloat(a.price?.amount || 0);
-            }
-            if (sortBy === 'price-low') {
-                return parseFloat(a.price?.amount || 0) - parseFloat(b.price?.amount || 0);
-            }
-            if (sortBy === 'title') {
-                return (a.title || '').localeCompare(b.title || '');
-            }
+            if (sortBy === 'newest') return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+            if (sortBy === 'oldest') return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+            if (sortBy === 'price-high') return parseFloat(b.price?.amount || 0) - parseFloat(a.price?.amount || 0);
+            if (sortBy === 'price-low') return parseFloat(a.price?.amount || 0) - parseFloat(b.price?.amount || 0);
+            if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
             return 0;
         });
-
         return result;
     }, [products, searchQuery, sortBy]);
 
-    const formatPrice = (price) => {
-        if (!price) return '$0.00';
-        const amount = parseFloat(price.amount || 0);
-        const currency = price.currency || 'USD';
-        try {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: currency,
-                maximumFractionDigits: 2,
-            }).format(amount);
-        } catch {
-            return `${currency} ${amount.toFixed(2)}`;
-        }
-    };
-
-    const formatDate = (isoString) => {
-        if (!isoString) return 'N/A';
-        const date = new Date(isoString);
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-        });
-    };
-
-    const copyToClipboard = (id) => {
-        navigator.clipboard.writeText(id);
-        setCopiedId(id);
-        setTimeout(() => setCopiedId(null), 2000);
-    };
-
-    const handleLogoutClick = async () => {
-        await handleLogout();
-        navigate('/login');
-    };
-
     return (
-        <div className="min-h-screen bg-[#0c1324] text-[#dce1fb] font-sans antialiased flex flex-col">
-            {/* Header / Top Nav */}
-            <header className="w-full bg-[#0c1324] border-b border-[#2e3447]/50 sticky top-0 z-30 backdrop-blur-md bg-opacity-90">
-                <div className="flex justify-between items-center w-full px-4 md:px-12 py-4 max-w-[1400px] mx-auto">
-                    <div className="flex items-center gap-8">
-                        <Link to="/" className="font-['Hanken_Grotesk'] text-2xl font-bold text-[#f59e0b] tracking-tighter hover:opacity-90 transition-opacity">
-                            ZENTRA
-                        </Link>
+        <div className="min-h-screen bg-[#09090b] text-[#fafafa]">
 
-                    </div>
+            {/* ── Hero Section ─────────────────────────────── */}
+            <section className="relative overflow-hidden border-b border-[#18181b]">
+                {/* Ambient glows */}
+                <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-[#f59e0b]/5 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute bottom-0 right-1/4 w-[400px] h-[300px] bg-[#f59e0b]/3 rounded-full blur-[100px] pointer-events-none" />
 
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => fetchProducts(true)}
-                            disabled={refreshing}
-                            className="p-2 rounded-lg bg-[#131b2e] border border-[#2e3447]/60 text-[#a08e7a] hover:text-white hover:border-[#f59e0b]/40 transition-all cursor-pointer"
-                            title="Refresh Marketplace"
-                        >
-                            <svg className={`w-4 h-4 ${refreshing ? 'animate-spin text-[#f59e0b]' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                        </button>
-
-                        {user ? (
-                            <div className="flex items-center gap-4">
-                                <div className="hidden sm:flex flex-col items-end">
-                                    <span className="text-white text-xs font-semibold leading-none">{user.fullname || 'Zentra User'}</span>
-                                    <span className="text-[10px] font-mono text-[#f59e0b] uppercase tracking-wider mt-1 bg-[#f59e0b]/10 px-1.5 py-0.2 rounded border border-[#f59e0b]/20">
-                                        {user.role}
-                                    </span>
-                                </div>
-                                <button
-                                    onClick={handleLogoutClick}
-                                    className="flex items-center gap-1.5 border border-[#2e3447] hover:border-rose-500/40 text-[#a08e7a] hover:text-rose-400 bg-[#131b2e] text-xs font-semibold uppercase tracking-wider px-3.5 py-2 rounded-lg transition-all cursor-pointer"
-                                >
-                                    Logout
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <Link
-                                    to="/login"
-                                    className="text-white hover:text-[#f59e0b] text-xs font-semibold uppercase tracking-wider px-4 py-2.5 rounded-lg transition-all"
-                                >
-                                    Sign In
-                                </Link>
-                                <Link
-                                    to="/register"
-                                    className="bg-[#f59e0b] hover:bg-[#d97706] text-[#0c1324] font-semibold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg transition-all shadow-lg shadow-[#f59e0b]/10"
-                                >
-                                    Register
-                                </Link>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Container */}
-            <main className="flex-grow w-full max-w-[1400px] mx-auto px-4 md:px-12 py-8 relative">
-                {/* Ambient glow */}
-                <div className="absolute top-10 right-10 w-[500px] h-[500px] bg-[#f59e0b]/5 rounded-full blur-[140px] pointer-events-none"></div>
-                <div className="absolute bottom-10 left-10 w-[400px] h-[400px] bg-[#f59e0b]/2 rounded-full blur-[120px] pointer-events-none"></div>
-
-                {/* Hero Section */}
-                <div className="text-center md:text-left mb-12 max-w-3xl">
-                    <div className="inline-flex items-center gap-2 mb-3">
-                        <span className="text-[#f59e0b] text-[10px] font-mono uppercase tracking-widest bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2.5 py-0.5 rounded-full">
-                            Zentra Asset Exchange
-                        </span>
-                        <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                            Live Market
-                        </span>
-                    </div>
-                    <h1 className="font-['Hanken_Grotesk'] text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
-                        Digital Trade Infrastructure
-                    </h1>
-                    <p className="text-[#a08e7a] text-base md:text-lg mt-3 leading-relaxed">
-                        Access premium products verified by independent trade nodes. Discover, review, and acquire assets securely through decentralized settlement.
-                    </p>
-                </div>
-
-                {/* Filter & Control Bar */}
-                <div className="bg-[#131b2e] border border-[#2e3447]/60 rounded-xl p-4 mb-6 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
-                    {/* Search Input */}
-                    <div className="relative flex-grow max-w-md">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#a08e7a]">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
+                <div className="max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12 py-20 md:py-28 relative z-10">
+                    <div className="max-w-2xl z-animate-fade-in-up">
+                        <div className="inline-flex items-center gap-2 mb-6">
+                            <span className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-[#10b981] bg-[#10b981]/10 border border-[#10b981]/20 px-3 py-1.5 rounded-full">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse" />
+                                Live Marketplace
+                            </span>
+                            <span className="text-[11px] font-mono uppercase tracking-widest text-[#52525b]">
+                                {products.length} Products
+                            </span>
                         </div>
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search marketplace items..."
-                            className="w-full pl-10 pr-4 py-2.5 bg-[#0c1324] border border-[#2e3447] rounded-lg text-sm text-white placeholder-[#a08e7a]/60 focus:outline-none focus:border-[#f59e0b]/60 transition-colors"
-                        />
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery('')}
-                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#a08e7a] hover:text-white"
+
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-[#fafafa] leading-[1.1] mb-6" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                            Premium Products,{' '}
+                            <span className="text-[#f59e0b]">Curated</span>{' '}
+                            for You.
+                        </h1>
+
+                        <p className="text-[#a1a1aa] text-lg leading-relaxed mb-10 max-w-xl">
+                            Discover and shop from a handpicked selection of premium products. Seamless checkout, verified sellers.
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-4">
+                            <a
+                                href="#marketplace"
+                                className="inline-flex items-center gap-2 px-6 py-3.5 bg-[#f59e0b] text-[#09090b] font-bold text-sm rounded-xl hover:bg-[#d97706] transition-all duration-200 shadow-[0_8px_24px_rgba(245,158,11,0.3)] hover:shadow-[0_8px_32px_rgba(245,158,11,0.45)] active:scale-[0.98]"
                             >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        )}
+                                Shop Now
+                                <ArrowRightIcon />
+                            </a>
+                            <Link
+                                to="/register"
+                                className="inline-flex items-center gap-2 px-6 py-3.5 bg-transparent text-[#a1a1aa] font-semibold text-sm border border-[#3f3f46] rounded-xl hover:border-[#52525b] hover:text-[#fafafa] transition-all duration-200"
+                            >
+                                Create Account
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── Marketplace Section ───────────────────────── */}
+            <section id="marketplace" className="max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12 py-14">
+
+                {/* Section Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 mb-8">
+                    <div>
+                        <h2 className="text-2xl font-bold text-[#fafafa] tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                            All Products
+                        </h2>
+                        <p className="text-sm text-[#71717a] mt-1">
+                            {loading ? 'Loading…' : `${filteredProducts.length} ${filteredProducts.length === 1 ? 'product' : 'products'} available`}
+                        </p>
                     </div>
 
-                    {/* Sorting & View Layout Controls */}
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 bg-[#0c1324] border border-[#2e3447] rounded-lg px-3 py-1.5">
-                            <span className="text-xs text-[#a08e7a] uppercase font-mono">Sort:</span>
+                    {/* Controls */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Search */}
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-[#52525b]">
+                                <SearchIcon />
+                            </div>
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                placeholder="Search products…"
+                                className="w-52 md:w-64 pl-9 pr-4 py-2.5 bg-[#18181b] border border-[#27272a] focus:border-[#f59e0b]/50 rounded-xl text-sm text-[#fafafa] placeholder-[#52525b] focus:outline-none transition-colors duration-200"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute inset-y-0 right-2 flex items-center px-1 text-[#52525b] hover:text-[#a1a1aa] cursor-pointer"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Sort */}
+                        <div className="flex items-center gap-2 bg-[#18181b] border border-[#27272a] rounded-xl px-3 py-2.5">
+                            <span className="text-[11px] font-mono uppercase tracking-wider text-[#52525b]">Sort</span>
                             <select
                                 value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                                className="bg-transparent text-xs text-white focus:outline-none cursor-pointer pr-2 border-none"
+                                onChange={e => setSortBy(e.target.value)}
+                                className="bg-transparent text-xs text-[#fafafa] focus:outline-none cursor-pointer"
                             >
-                                <option value="newest" className="bg-[#131b2e] text-white">Newest First</option>
-                                <option value="oldest" className="bg-[#131b2e] text-white">Oldest First</option>
-                                <option value="price-high" className="bg-[#131b2e] text-white">Price: High to Low</option>
-                                <option value="price-low" className="bg-[#131b2e] text-white">Price: Low to High</option>
-                                <option value="title" className="bg-[#131b2e] text-white">Title (A-Z)</option>
+                                <option value="newest" className="bg-[#18181b]">Newest</option>
+                                <option value="oldest" className="bg-[#18181b]">Oldest</option>
+                                <option value="price-high" className="bg-[#18181b]">Price ↓</option>
+                                <option value="price-low" className="bg-[#18181b]">Price ↑</option>
+                                <option value="title" className="bg-[#18181b]">A–Z</option>
                             </select>
                         </div>
 
-                        {/* View Mode Toggle */}
-                        <div className="flex items-center bg-[#0c1324] border border-[#2e3447] rounded-lg p-1">
+                        {/* View toggle */}
+                        <div className="flex items-center bg-[#18181b] border border-[#27272a] rounded-xl p-1">
                             <button
                                 onClick={() => setViewMode('grid')}
-                                className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 'text-[#a08e7a] hover:text-white'} transition-colors cursor-pointer`}
-                                title="Grid View"
+                                className={`p-2 rounded-lg transition-all duration-200 cursor-pointer ${viewMode === 'grid' ? 'bg-[#f59e0b]/15 text-[#f59e0b]' : 'text-[#52525b] hover:text-[#a1a1aa]'}`}
+                                title="Grid view"
                             >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                                </svg>
+                                <GridIcon />
                             </button>
                             <button
                                 onClick={() => setViewMode('table')}
-                                className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 'text-[#a08e7a] hover:text-white'} transition-colors cursor-pointer`}
-                                title="List View"
+                                className={`p-2 rounded-lg transition-all duration-200 cursor-pointer ${viewMode === 'table' ? 'bg-[#f59e0b]/15 text-[#f59e0b]' : 'text-[#52525b] hover:text-[#a1a1aa]'}`}
+                                title="List view"
                             >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                                </svg>
+                                <ListIcon />
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Status Bar */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="text-sm font-mono text-[#a08e7a]">
-                        Found <span className="text-white font-bold">{filteredProducts.length}</span> active assets
-                    </div>
-                </div>
-
-                {/* Loading Skeleton */}
+                {/* ── Content ─── */}
                 {loading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[1, 2, 3].map((n) => (
-                            <div key={n} className="bg-[#131b2e] border border-[#2e3447]/60 rounded-xl overflow-hidden animate-pulse">
-                                <div className="h-48 bg-[#1e293b]"></div>
-                                <div className="p-5 space-y-3">
-                                    <div className="h-5 bg-[#2e3447] rounded w-3/4"></div>
-                                    <div className="h-4 bg-[#2e3447]/60 rounded w-full"></div>
-                                    <div className="h-4 bg-[#2e3447]/60 rounded w-1/2"></div>
-                                    <div className="pt-4 flex justify-between">
-                                        <div className="h-6 bg-[#f59e0b]/20 rounded w-20"></div>
-                                        <div className="h-6 bg-[#2e3447] rounded w-16"></div>
-                                    </div>
-                                </div>
+                    /* Skeleton grid */
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+                    </div>
+                ) : filteredProducts.length === 0 ? (
+                    <div className="bg-[#18181b] border border-[#27272a] rounded-2xl">
+                        <EmptyProductsState
+                            hasSearch={!!searchQuery}
+                            onClear={() => setSearchQuery('')}
+                        />
+                    </div>
+                ) : viewMode === 'grid' ? (
+                    /* Grid view */
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredProducts.map((product, i) => (
+                            <div key={product._id} className="z-animate-fade-in-up" style={{ animationDelay: `${i * 0.04}s` }}>
+                                <ProductCard product={product} onView={id => navigate(`/product/${id}`)} />
                             </div>
                         ))}
                     </div>
-                ) : filteredProducts.length === 0 ? (
-                    /* Empty State */
-                    <div className="bg-[#131b2e] border border-[#2e3447]/60 rounded-2xl p-12 text-center my-8 max-w-xl mx-auto">
-                        <div className="w-16 h-16 rounded-2xl bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center text-[#f59e0b] mx-auto mb-4">
-                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                            </svg>
-                        </div>
-                        <h3 className="text-xl font-semibold text-white mb-2">
-                            No listings found
-                        </h3>
-                        <p className="text-[#a08e7a] text-sm mb-6 max-w-md mx-auto">
-                            {searchQuery
-                                ? `No items matched "${searchQuery}". Try clearing search query.`
-                                : 'There are currently no listed products on Zentra.'}
-                        </p>
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery('')}
-                                className="px-4 py-2 bg-[#2e3447] hover:bg-[#3b435b] text-white text-xs uppercase tracking-wider font-semibold rounded-lg transition-colors cursor-pointer"
-                            >
-                                Clear Search Filter
-                            </button>
-                        )}
-                    </div>
-                ) : viewMode === 'grid' ? (
-                    /* GRID VIEW */
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredProducts.map((product) => {
-                            const mainImage = product.images && product.images.length > 0 ? product.images[0]?.url : null;
-                            const isCopied = copiedId === product._id;
-
-                            return (
-                                <div
-
-                                    onClick={() => navigate(`/product/${product._id}`)}
-
-                                    key={product._id}
-                                    className="bg-[#131b2e] border border-[#2e3447]/60 hover:border-[#f59e0b]/50 rounded-xl overflow-hidden transition-all duration-300 flex flex-col group shadow-lg shadow-black/20"
-                                >
-                                    {/* Product Image Container */}
-                                    <div className="relative h-52 bg-[#080e1a] overflow-hidden flex items-center justify-center">
-                                        {mainImage ? (
-                                            <img
-                                                src={mainImage}
-                                                alt={product.title}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                            />
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center text-[#a08e7a]">
-                                                <svg className="w-10 h-10 mb-1 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                                <span className="text-xs">No Image Available</span>
-                                            </div>
-                                        )}
-
-                                        {/* Price Tag Badge */}
-                                        <div className="absolute top-3 right-3 bg-[#0c1324]/90 border border-[#f59e0b]/40 backdrop-blur-md px-3 py-1 rounded-full text-[#f59e0b] font-bold font-mono text-xs shadow-md">
-                                            {formatPrice(product.price)}
-                                        </div>
-
-                                        {/* Media Count Badge */}
-                                        {product.images?.length > 0 && (
-                                            <div className="absolute bottom-3 left-3 bg-[#0c1324]/80 backdrop-blur-sm border border-[#2e3447] text-[#a08e7a] px-2.5 py-0.5 rounded text-[10px] font-mono flex items-center gap-1">
-                                                <svg className="w-3 h-3 text-[#f59e0b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                                {product.images.length} {product.images.length === 1 ? 'Image' : 'Images'}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Product Body */}
-                                    <div
-
-
-                                        className="p-5 flex-grow flex flex-col justify-between">
-                                        <div>
-                                            <h3 className="font-semibold text-lg text-white group-hover:text-[#f59e0b] transition-colors line-clamp-1 mb-2">
-                                                {product.title || 'Untitled Product'}
-                                            </h3>
-                                            <p className="text-[#a08e7a] text-xs leading-relaxed line-clamp-2 mb-4">
-                                                {product.description || 'No description provided for this listing.'}
-                                            </p>
-                                        </div>
-
-                                        <div className="pt-4 border-t border-[#2e3447]/60 flex items-center justify-between gap-2">
-                                            <div className="text-[11px] font-mono text-[#a08e7a]">
-                                                {formatDate(product.createdAt)}
-                                            </div>
-
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => copyToClipboard(product._id)}
-                                                    className="p-1.5 rounded-lg bg-[#0c1324] border border-[#2e3447] text-[#a08e7a] hover:text-white hover:border-[#f59e0b]/30 transition-colors cursor-pointer"
-                                                    title="Copy ID"
-                                                >
-                                                    {isCopied ? (
-                                                        <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    ) : (
-                                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                        </svg>
-                                                    )}
-                                                </button>
-
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedProduct(product);
-                                                        setSelectedImageIndex(0);
-                                                    }}
-                                                    className="px-3 py-1.5 rounded-lg bg-[#f59e0b]/10 hover:bg-[#f59e0b]/20 border border-[#f59e0b]/30 text-[#f59e0b] text-xs font-semibold tracking-wider transition-colors cursor-pointer flex items-center gap-1"
-                                                >
-                                                    <span>View</span>
-                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
                 ) : (
-                    /* LIST VIEW */
-                    <div className="bg-[#131b2e] border border-[#2e3447]/60 rounded-xl overflow-hidden shadow-xl">
+                    /* List view */
+                    <div className="bg-[#18181b] border border-[#27272a] rounded-2xl overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                            <table className="w-full text-left">
                                 <thead>
-                                    <tr className="bg-[#0c1324] border-b border-[#2e3447]/60 text-[11px] font-mono uppercase tracking-wider text-[#a08e7a]">
-                                        <th className="py-3.5 px-4">Item</th>
-                                        <th className="py-3.5 px-4">Price</th>
-                                        <th className="py-3.5 px-4">Asset ID</th>
-                                        <th className="py-3.5 px-4">Listed Date</th>
-                                        <th className="py-3.5 px-4 text-right">Actions</th>
+                                    <tr className="border-b border-[#27272a] bg-[#09090b]">
+                                        <th className="py-4 px-5 text-[11px] font-mono uppercase tracking-widest text-[#52525b]">Product</th>
+                                        <th className="py-4 px-5 text-[11px] font-mono uppercase tracking-widest text-[#52525b]">Price</th>
+                                        <th className="py-4 px-5 text-[11px] font-mono uppercase tracking-widest text-[#52525b] hidden md:table-cell">Listed</th>
+                                        <th className="py-4 px-5 text-[11px] font-mono uppercase tracking-widest text-[#52525b] text-right">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[#2e3447]/40 text-xs">
-                                    {filteredProducts.map((product) => {
-                                        const mainImage = product.images && product.images.length > 0 ? product.images[0]?.url : null;
-                                        const isCopied = copiedId === product._id;
-
+                                <tbody className="divide-y divide-[#27272a]">
+                                    {filteredProducts.map(product => {
+                                        const img = product.images?.[0]?.url;
                                         return (
-                                            <tr key={product._id} className="hover:bg-[#0c1324]/50 transition-colors">
-                                                <td className="py-3 px-4">
+                                            <tr
+                                                key={product._id}
+                                                className="hover:bg-[#27272a]/40 transition-colors duration-150 cursor-pointer"
+                                                onClick={() => navigate(`/product/${product._id}`)}
+                                            >
+                                                <td className="py-4 px-5">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-lg bg-[#0c1324] border border-[#2e3447] overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                                            {mainImage ? (
-                                                                <img src={mainImage} alt={product.title} className="w-full h-full object-cover" />
-                                                            ) : (
-                                                                <svg className="w-5 h-5 text-[#a08e7a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                                </svg>
-                                                            )}
+                                                        <div className="w-10 h-10 rounded-xl bg-[#09090b] border border-[#27272a] overflow-hidden shrink-0">
+                                                            {img
+                                                                ? <img src={img} alt={product.title} className="w-full h-full object-cover" />
+                                                                : <div className="w-full h-full flex items-center justify-center text-[#3f3f46]">
+                                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                                                                    </svg>
+                                                                </div>
+                                                            }
                                                         </div>
                                                         <div>
-                                                            <div className="font-semibold text-white text-sm line-clamp-1">{product.title || 'Untitled'}</div>
-                                                            <div className="text-[#a08e7a] text-[11px] line-clamp-1 max-w-xs">{product.description || 'No description'}</div>
+                                                            <div className="text-sm font-semibold text-[#fafafa] line-clamp-1">{product.title || 'Untitled'}</div>
+                                                            <div className="text-xs text-[#71717a] line-clamp-1 max-w-[240px]">{product.description || 'No description'}</div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="py-3 px-4">
-                                                    <span className="font-mono font-bold text-[#f59e0b]">
-                                                        {formatPrice(product.price)}
-                                                    </span>
+                                                <td className="py-4 px-5">
+                                                    <span className="font-bold font-mono text-[#f59e0b] text-sm">{formatPrice(product.price)}</span>
                                                 </td>
-                                                <td className="py-3 px-4">
-                                                    <div className="flex items-center gap-1.5 font-mono text-[11px] text-[#a08e7a]">
-                                                        <span>{product._id?.substring(0, 10)}...</span>
-                                                        <button
-                                                            onClick={() => copyToClipboard(product._id)}
-                                                            className="text-[#a08e7a] hover:text-white transition-colors cursor-pointer"
-                                                            title="Copy ID"
-                                                        >
-                                                            {isCopied ? (
-                                                                <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                                </svg>
-                                                            ) : (
-                                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                                </svg>
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                                <td className="py-3 px-4 text-[#a08e7a] font-mono text-[11px]">
+                                                <td className="py-4 px-5 hidden md:table-cell text-xs font-mono text-[#52525b]">
                                                     {formatDate(product.createdAt)}
                                                 </td>
-                                                <td className="py-3 px-4 text-right">
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedProduct(product);
-                                                            setSelectedImageIndex(0);
-                                                        }}
-                                                        className="px-3 py-1 rounded bg-[#f59e0b]/10 hover:bg-[#f59e0b]/20 border border-[#f59e0b]/30 text-[#f59e0b] text-xs font-medium cursor-pointer transition-colors"
-                                                    >
-                                                        Details
-                                                    </button>
+                                                <td className="py-4 px-5 text-right">
+                                                    <span className="inline-flex items-center gap-1 text-[#f59e0b] text-xs font-semibold hover:gap-2 transition-all duration-200">
+                                                        View <ArrowRightIcon />
+                                                    </span>
                                                 </td>
                                             </tr>
                                         );
@@ -511,142 +360,54 @@ const Home = () => {
                         </div>
                     </div>
                 )}
-            </main>
+            </section>
 
-            {/* PRODUCT DETAIL MODAL */}
-            {selectedProduct && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fadeIn" onClick={() => setSelectedProduct(null)}>
-                    <div
-                        className="bg-[#131b2e] border border-[#2e3447] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative flex flex-col"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Modal Header */}
-                        <div className="p-6 border-b border-[#2e3447] flex items-center justify-between sticky top-0 bg-[#131b2e] z-10">
-                            <div>
-                                <span className="text-[10px] font-mono uppercase text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2.5 py-0.5 rounded">
-                                    Asset Listing Details
-                                </span>
-                                <h2 className="text-xl font-bold text-white mt-1 leading-tight">
-                                    {selectedProduct.title}
-                                </h2>
-                            </div>
-                            <button
-                                onClick={() => setSelectedProduct(null)}
-                                className="w-8 h-8 rounded-lg bg-[#0c1324] border border-[#2e3447] text-[#a08e7a] hover:text-white flex items-center justify-center cursor-pointer transition-colors"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        {/* Modal Body */}
-                        <div className="p-6 space-y-6">
-                            {/* Main Image Gallery */}
-                            {selectedProduct.images && selectedProduct.images.length > 0 ? (
-                                <div className="space-y-3">
-                                    <div className="h-80 w-full bg-[#080e1a] rounded-xl overflow-hidden border border-[#2e3447] flex items-center justify-center relative">
-                                        <img
-                                            src={selectedProduct.images[selectedImageIndex]?.url}
-                                            alt={selectedProduct.title}
-                                            className="w-full h-full object-contain"
-                                        />
-                                    </div>
-                                    {/* Thumbnails */}
-                                    {selectedProduct.images.length > 1 && (
-                                        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                                            {selectedProduct.images.map((img, idx) => (
-                                                <button
-                                                    key={img._id || idx}
-                                                    onClick={() => setSelectedImageIndex(idx)}
-                                                    className={`w-14 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0 cursor-pointer transition-all ${selectedImageIndex === idx
-                                                        ? 'border-[#f59e0b] opacity-100 scale-105'
-                                                        : 'border-[#2e3447] opacity-60 hover:opacity-100'
-                                                        }`}
-                                                >
-                                                    <img src={img.url} alt="" className="w-full h-full object-cover" />
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="h-40 bg-[#080e1a] rounded-xl border border-[#2e3447] flex items-center justify-center text-[#a08e7a]">
-                                    <svg className="w-12 h-12 mb-1 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            {/* ── Features strip ──────────────────────────── */}
+            <section className="border-t border-[#18181b] bg-[#18181b]/30">
+                <div className="max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12 py-12">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+                        {[
+                            {
+                                icon: (
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
                                     </svg>
-                                    <span className="text-xs">No images available</span>
+                                ),
+                                title: 'Verified Sellers',
+                                desc: 'Every seller on Zentra is verified and trusted.'
+                            },
+                            {
+                                icon: (
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+                                    </svg>
+                                ),
+                                title: 'Secure Checkout',
+                                desc: 'Powered by Razorpay for safe, encrypted payments.'
+                            },
+                            {
+                                icon: (
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+                                    </svg>
+                                ),
+                                title: 'Fast Delivery',
+                                desc: 'Express shipping available on all eligible orders.'
+                            }
+                        ].map((feature, i) => (
+                            <div key={i} className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center text-[#f59e0b] shrink-0">
+                                    {feature.icon}
                                 </div>
-                            )}
-
-                            {/* Details Metadata */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#0c1324] border border-[#2e3447]/60 rounded-xl p-4">
                                 <div>
-                                    <div className="text-[10px] font-mono uppercase text-[#a08e7a]">Listed Price</div>
-                                    <div className="text-2xl font-bold text-[#f59e0b] mt-0.5">{formatPrice(selectedProduct.price)}</div>
-                                </div>
-                                <div>
-                                    <div className="text-[10px] font-mono uppercase text-[#a08e7a]">Listed Date</div>
-                                    <div className="text-sm font-semibold text-white mt-1.5">{formatDate(selectedProduct.createdAt)}</div>
-                                </div>
-                                <div className="md:col-span-2">
-                                    <div className="text-[10px] font-mono uppercase text-[#a08e7a] flex items-center gap-1.5">
-                                        <span>Product/Asset ID</span>
-                                        <button
-                                            onClick={() => copyToClipboard(selectedProduct._id)}
-                                            className="text-[#f59e0b] hover:text-[#ffc174] transition-colors flex items-center gap-1 font-mono text-[9px] cursor-pointer"
-                                        >
-                                            {copiedId === selectedProduct._id ? 'Copied!' : 'Copy'}
-                                        </button>
-                                    </div>
-                                    <div className="font-mono text-xs text-white bg-[#131b2e] border border-[#2e3447] px-3 py-1.5 rounded-lg mt-1 select-all break-all">
-                                        {selectedProduct._id}
-                                    </div>
-                                </div>
-                                <div className="md:col-span-2">
-                                    <div className="text-[10px] font-mono uppercase text-[#a08e7a]">Seller Identity</div>
-                                    <div className="font-mono text-xs text-white bg-[#131b2e] border border-[#2e3447] px-3 py-1.5 rounded-lg mt-1 break-all select-all">
-                                        {selectedProduct.seller}
-                                    </div>
+                                    <h3 className="text-sm font-semibold text-[#fafafa] mb-1">{feature.title}</h3>
+                                    <p className="text-xs text-[#71717a] leading-relaxed">{feature.desc}</p>
                                 </div>
                             </div>
-
-                            {/* Description block */}
-                            <div>
-                                <h3 className="text-xs font-mono uppercase text-[#a08e7a] mb-2">Description</h3>
-                                <p className="text-sm text-[#dce1fb] leading-relaxed whitespace-pre-wrap bg-[#0c1324] border border-[#2e3447]/60 rounded-xl p-4">
-                                    {selectedProduct.description || 'No description provided.'}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="p-4 border-t border-[#2e3447] bg-[#0c1324] flex justify-end">
-                            <button
-                                onClick={() => setSelectedProduct(null)}
-                                className="px-5 py-2 rounded-xl bg-[#2e3447] hover:bg-[#3d455d] text-white font-semibold text-xs uppercase tracking-wider cursor-pointer transition-colors"
-                            >
-                                Close
-                            </button>
-                        </div>
+                        ))}
                     </div>
                 </div>
-            )}
-
-            {/* Simple Footer */}
-            <footer className="w-full bg-[#0c1324] border-t border-[#2e3447]/40 py-6 mt-12 text-center text-xs text-[#a08e7a]/50">
-                <div className="max-w-[1400px] mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div>© 2026 Zentra Digital Trade. All rights secured.</div>
-                    <div className="flex gap-4">
-                        <Link to="/" className="hover:text-white transition-colors">Marketplace</Link>
-                        {user && user.role === 'seller' && (
-                            <Link to="/seller/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
-                        )}
-                        <span className="text-[#2e3447]">|</span>
-                        <span>STATUS: ONLINE</span>
-                    </div>
-                </div>
-            </footer>
+            </section>
         </div>
     );
 };
