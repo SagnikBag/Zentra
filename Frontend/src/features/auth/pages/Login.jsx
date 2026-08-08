@@ -16,8 +16,6 @@ export function Login() {
         setFormData((prev) => ({ ...prev, [id]: value }));
     };
 
-
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -26,15 +24,13 @@ export function Login() {
             const user = await handleLogin({ email: formData.email, password: formData.password });
             setStatus({ type: "success", message: "Logged in successfully!" });
             setTimeout(() => {
-                if (user.role == "buyer") {
-                    navigate('/')
+                if (user.role === "buyer") {
+                    navigate('/');
                 }
-                else if (user.role == 'seller') {
-
-                    navigate('/seller/dashboard')
+                else if (user.role === 'seller') {
+                    navigate('/seller/dashboard');
                 }
             }, 1500);
-
 
         } catch (err) {
             console.error(err);
@@ -45,21 +41,21 @@ export function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0c1324] text-[#dce1fb] font-sans antialiased flex overflow-hidden">
+        <div className="min-h-screen bg-[#09090b] text-[#fafafa] font-sans antialiased flex overflow-hidden">
             {/* LEFT SIDE: Branding (desktop only) */}
-            <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative bg-[#070d1f] border-r border-[#2e3447]/40 flex-col justify-between p-16 overflow-hidden">
+            <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative bg-black border-r border-[#27272a]/40 flex-col justify-between p-16 overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none z-0">
                     <div className="absolute top-[-20%] left-[-20%] w-[50vw] h-[50vw] rounded-full bg-[#f59e0b]/5 blur-[120px]"></div>
                     <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-[#f59e0b]/5 blur-[100px]"></div>
                 </div>
                 <div className="relative z-10">
-                    <div className="text-2xl font-bold text-[#f59e0b] tracking-widest uppercase">ZENTRA</div>
+                    <div className="text-2xl font-bold text-[#f59e0b] tracking-widest uppercase" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>ZENTRA</div>
                 </div>
                 <div className="relative z-10 my-auto max-w-[480px]">
-                    <span className="text-[#f59e0b] text-xs font-mono uppercase tracking-widest bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-3 py-1 rounded-full">
+                    <span className="text-[#f59e0b] text-[10px] font-mono uppercase tracking-widest bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-3 py-1 rounded-full">
                         Private Beta Access
                     </span>
-                    <h2 className="text-4xl xl:text-5xl font-semibold text-white tracking-tight mt-6 mb-8 leading-tight">
+                    <h2 className="text-4xl xl:text-5xl font-semibold text-[#fafafa] tracking-tight mt-6 mb-8 leading-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                         Institutional-Grade Digital Trade Infrastructure.
                     </h2>
                     <div className="flex flex-col gap-6">
@@ -70,15 +66,15 @@ export function Login() {
                                 </svg>
                             </div>
                             <div>
-                                <h4 className="text-white font-medium text-base">End-to-End Cryptographic Security</h4>
-                                <p className="text-[#a08e7a] text-sm mt-1 leading-relaxed">
+                                <h4 className="text-[#fafafa] font-medium text-base">End-to-End Cryptographic Security</h4>
+                                <p className="text-[#71717a] text-sm mt-1 leading-relaxed">
                                     Every interaction is sealed with enterprise‑grade encryption.
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div className="relative z-10 text-xs text-[#a08e7a]/50 font-mono">
+                <div className="relative z-10 text-[10px] text-[#52525b] font-mono uppercase tracking-widest">
                     SYSTEM STATUS: ONLINE // PROTOCOL V4.1
                 </div>
             </div>
@@ -91,26 +87,26 @@ export function Login() {
                 </div>
                 {/* Mobile header */}
                 <header className="relative z-10 w-full flex justify-between items-center mb-10 lg:hidden">
-                    <div className="text-xl font-bold text-[#f59e0b] tracking-widest uppercase">ZENTRA</div>
-                    <span className="text-[#a08e7a] text-xs font-mono uppercase tracking-widest">Premium Access</span>
+                    <div className="text-xl font-bold text-[#f59e0b] tracking-widest uppercase" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>ZENTRA</div>
+                    <span className="text-[#71717a] text-[10px] font-mono uppercase tracking-widest">Premium Access</span>
                 </header>
                 {/* Form container */}
                 <div className="relative z-10 my-auto w-full max-w-[440px] mx-auto py-8">
                     <div className="mb-8">
-                        <h1 className="text-3xl font-semibold text-white tracking-tight mb-2">
+                        <h1 className="text-3xl font-bold text-[#fafafa] tracking-tight mb-2" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                             Sign in to Your Account
                         </h1>
-                        <p className="text-[#a08e7a] text-sm leading-relaxed">
+                        <p className="text-[#71717a] text-sm leading-relaxed">
                             Access your dashboard and manage your digital trade profile.
                         </p>
                     </div>
-                    <div className="bg-[#191f31]/40 backdrop-blur-xl border border-[#2e3447]/50 p-6 md:p-8 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+                    <div className="bg-[#18181b]/60 backdrop-blur-xl border border-[#27272a] p-6 md:p-8 rounded-2xl shadow-2xl">
                         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                             {status.message && (
                                 <div
-                                    className={`p-4 rounded-xl text-xs md:text-sm border ${status.type === "success"
-                                        ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
-                                        : "bg-rose-950/40 border-rose-500/30 text-rose-400"
+                                    className={`p-4 rounded-xl text-xs md:text-sm border font-medium ${status.type === "success"
+                                        ? "bg-[#10b981]/10 border-[#10b981]/20 text-[#10b981]"
+                                        : "bg-[#f87171]/10 border-[#f87171]/20 text-[#f87171]"
                                         } transition-all duration-300`}
                                 >
                                     {status.message}
@@ -119,7 +115,7 @@ export function Login() {
 
                             {/* Email */}
                             <div className="flex flex-col gap-1.5">
-                                <label htmlFor="email" className="text-[10px] font-mono uppercase tracking-widest text-[#a08e7a]">
+                                <label htmlFor="email" className="text-[10px] font-mono uppercase tracking-widest text-[#71717a]">
                                     Email Address
                                 </label>
                                 <input
@@ -129,13 +125,13 @@ export function Login() {
                                     onChange={handleChange}
                                     placeholder="e.vane@zentra.com"
                                     required
-                                    className="w-full bg-[#151b2d] border border-[#2e3447] focus:border-[#f59e0b] rounded-xl px-4 py-3 text-sm text-[#dce1fb] placeholder-[#2e3447] focus:outline-none focus:ring-1 focus:ring-[#f59e0b] transition-all duration-300"
+                                    className="w-full bg-[#09090b] border border-[#27272a] focus:border-[#f59e0b]/50 rounded-xl px-4 py-3 text-sm text-[#fafafa] placeholder-[#52525b] focus:outline-none transition-all duration-300"
                                 />
                             </div>
 
                             {/* Password */}
                             <div className="flex flex-col gap-1.5">
-                                <label htmlFor="password" className="text-[10px] font-mono uppercase tracking-widest text-[#a08e2a]">
+                                <label htmlFor="password" className="text-[10px] font-mono uppercase tracking-widest text-[#71717a]">
                                     Password
                                 </label>
                                 <div className="relative">
@@ -146,12 +142,12 @@ export function Login() {
                                         onChange={handleChange}
                                         placeholder="••••••••••••"
                                         required
-                                        className="w-full bg-[#151b2d] border border-[#2e3447] focus:border-[#f59e0b] rounded-xl px-4 py-3 pr-10 text-sm text-[#dce1fb] placeholder-[#2e3447] focus:outline-none focus:ring-1 focus:ring-[#f59e0b] transition-all duration-300"
+                                        className="w-full bg-[#09090b] border border-[#27272a] focus:border-[#f59e0b]/50 rounded-xl px-4 py-3 pr-10 text-sm text-[#fafafa] placeholder-[#52525b] focus:outline-none transition-all duration-300"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2e3447] hover:text-[#f59e0b] transition-colors"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#52525b] hover:text-[#f59e0b] transition-colors"
                                     >
                                         {showPassword ? (
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
@@ -171,29 +167,31 @@ export function Login() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-[#f59e0b] text-[#0c1324] font-semibold py-3.5 rounded-xl hover:bg-[#d97706] transition-all duration-300 transform active:scale-[0.98] mt-1 shadow-[0_10px_20px_rgba(245,158,11,0.15)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full bg-[#f59e0b] text-[#09090b] font-bold py-3.5 rounded-xl hover:bg-[#d97706] transition-all duration-300 active:scale-[0.98] mt-1 shadow-[0_4px_14px_rgba(245,158,11,0.25)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                                 {loading ? "Signing in..." : "Sign In"}
                             </button>
                             <ContineuWithGoolge />
                         </form>
                         <div className="text-center mt-5">
-                            <p className="text-[#a08e7a] text-xs">
-                                Don't have an account? <Link to="/register" className="text-[#f59e0b] font-medium hover:underline ml-1">Create one</Link>
+                            <p className="text-[#71717a] text-xs">
+                                Don't have an account? <Link to="/register" className="text-[#f59e0b] font-semibold hover:underline ml-1 transition-colors">Create one</Link>
                             </p>
                         </div>
                     </div>
                 </div>
                 {/* Footer */}
-                <footer className="relative z-10 w-full flex flex-col md:flex-row justify-between items-center gap-4 text-[11px] text-[#a08e7a]/60 pt-8 border-t border-[#2e3447]/20">
-                    <div>© 2026 Zentra Premium Systems.</div>
+                <footer className="relative z-10 w-full flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-mono text-[#52525b] pt-8 border-t border-[#27272a]">
+                    <div>© {new Date().getFullYear()} ZENTRA PREMIUM SYSTEMS.</div>
                     <div className="flex gap-4">
-                        <a href="#" className="hover:text-[#f59e0b] transition-colors">Privacy</a>
-                        <a href="#" className="hover:text-[#f59e0b] transition-colors">Terms</a>
-                        <a href="#" className="hover:text-[#f59e0b] transition-colors">Support</a>
+                        <a href="#" className="hover:text-[#fafafa] transition-colors">PRIVACY</a>
+                        <a href="#" className="hover:text-[#fafafa] transition-colors">TERMS</a>
+                        <a href="#" className="hover:text-[#fafafa] transition-colors">SUPPORT</a>
                     </div>
                 </footer>
             </div>
         </div>
     );
 }
+
+export default Login;

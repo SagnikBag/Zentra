@@ -1,752 +1,41 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useProduct } from '../hooks/useProduct';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
+import { useProduct } from '../hooks/useProduct';
 
-/* ─── helpers ────────────────────────────────────────────────────── */
+/* ─── Icons ───────────────────────────────────────────────────────── */
+const IconArrowLeft = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>;
+const IconPlus = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>;
+const IconCheck = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>;
+const IconMinus = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>;
+const IconTrash = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>;
+const IconClose = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
+const IconUpload = () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>;
+const IconImage = () => <svg className="w-8 h-8 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0Z" /></svg>;
+const IconPackage = () => <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>;
+
+/* ─── Helpers ─────────────────────────────────────────────────────── */
 const formatPrice = (price) => {
-    if (!price) return '—';
+    if (!price) return '$0.00';
     const amount = parseFloat(price.amount || 0);
-    const currency = price.currency || 'INR';
+    const currency = price.currency || 'USD';
     try {
-        return new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount);
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount);
     } catch {
         return `${currency} ${amount.toFixed(2)}`;
     }
 };
 
 const getStockStatus = (stock) => {
-    if (stock === 0) return { label: 'Out of Stock', color: '#f87171', bg: 'rgba(248,113,113,0.12)', dot: '#f87171' };
-    if (stock < 10) return { label: 'Low Stock', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', dot: '#fbbf24' };
-    return { label: 'In Stock', color: '#34d399', bg: 'rgba(52,211,153,0.12)', dot: '#34d399' };
+    if (stock > 20) return { label: 'In Stock', bg: 'rgba(52,211,153,0.1)', color: '#34d399', dot: '#34d399' };
+    if (stock > 0) return { label: 'Low Stock', bg: 'rgba(245,158,11,0.1)', color: '#f59e0b', dot: '#f59e0b' };
+    return { label: 'Out of Stock', bg: 'rgba(248,113,113,0.1)', color: '#f87171', dot: '#f87171' };
 };
 
-const getAttrsDisplay = (attridutes) => {
-    if (!attridutes) return [];
-    if (attridutes instanceof Map) return Array.from(attridutes.entries());
-    if (typeof attridutes === 'object') return Object.entries(attridutes);
-    return [];
+const getAttrsDisplay = (attrObj) => {
+    if (!attrObj) return [];
+    if (typeof attrObj !== 'object') return [];
+    return Object.entries(attrObj);
 };
-
-/* ─── icons ──────────────────────────────────────────────────────── */
-const IconPlus = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-    </svg>
-);
-const IconMinus = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
-    </svg>
-);
-const IconTrash = () => (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <polyline points="3 6 5 6 21 6" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10 11v6M14 11v6" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
-    </svg>
-);
-const IconCheck = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <polyline points="20 6 9 17 4 12" />
-    </svg>
-);
-const IconClose = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
-);
-const IconArrowLeft = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 5l-7 7 7 7" />
-    </svg>
-);
-const IconPackage = () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0v10l-8 4m0-14L4 7m8 4v10" />
-    </svg>
-);
-const IconUpload = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-    </svg>
-);
-const IconImage = () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-);
-
-/* ─── styles ──────────────────────────────────────────────────────── */
-const styles = `
-    @import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
-    .spd-root {
-        min-height: 100vh;
-        background: #0c1324;
-        color: #dce1fb;
-        font-family: 'Inter', sans-serif;
-    }
-    .spd-topbar {
-        position: sticky;
-        top: 0;
-        z-index: 50;
-        background: rgba(12, 19, 36, 0.85);
-        backdrop-filter: blur(12px);
-        border-bottom: 1px solid #2e3447;
-        padding: 0 48px;
-        height: 64px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .spd-logo {
-        font-family: 'Hanken Grotesk', sans-serif;
-        font-size: 20px;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        color: #dce1fb;
-        text-decoration: none;
-    }
-    .spd-logo span { color: #f59e0b; }
-    .spd-nav-btn {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        border-radius: 6px;
-        border: 1px solid #2e3447;
-        background: transparent;
-        color: #a08e7a;
-        font-size: 13px;
-        font-family: 'JetBrains Mono', monospace;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
-    }
-    .spd-nav-btn:hover { border-color: #f59e0b; color: #f59e0b; background: rgba(245,158,11,0.06); }
-    .spd-container {
-        max-width: 1280px;
-        margin: 0 auto;
-        padding: 48px 48px 80px;
-    }
-    /* Hero */
-    .spd-hero {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 40px;
-        margin-bottom: 64px;
-    }
-    @media (max-width: 900px) {
-        .spd-hero { grid-template-columns: 1fr; }
-        .spd-container { padding: 24px 16px 64px; }
-        .spd-topbar { padding: 0 16px; }
-    }
-    .spd-gallery {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-    .spd-gallery-main {
-        aspect-ratio: 4/3;
-        background: #131b2e;
-        border-radius: 10px;
-        border: 1px solid #2e3447;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .spd-gallery-main img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .spd-gallery-thumbs {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-    .spd-thumb {
-        width: 64px;
-        height: 64px;
-        border-radius: 6px;
-        border: 1px solid #2e3447;
-        overflow: hidden;
-        cursor: pointer;
-        transition: border-color 0.2s;
-        flex-shrink: 0;
-    }
-    .spd-thumb:hover, .spd-thumb.active { border-color: #f59e0b; }
-    .spd-thumb img { width: 100%; height: 100%; object-fit: cover; }
-    .spd-product-info {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        padding-top: 8px;
-    }
-    .spd-badge-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .spd-badge {
-        padding: 4px 10px;
-        border-radius: 4px;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        font-weight: 500;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-    }
-    .spd-badge-amber { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
-    .spd-badge-slate { background: rgba(46,52,71,0.6); color: #a08e7a; border: 1px solid #2e3447; }
-    .spd-title {
-        font-family: 'Hanken Grotesk', sans-serif;
-        font-size: 36px;
-        font-weight: 700;
-        line-height: 1.15;
-        letter-spacing: -0.02em;
-        color: #dce1fb;
-        margin: 0;
-    }
-    .spd-desc {
-        font-size: 15px;
-        line-height: 1.7;
-        color: #a08e7a;
-        margin: 0;
-    }
-    .spd-price-row {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-    }
-    .spd-price-main {
-        font-family: 'Hanken Grotesk', sans-serif;
-        font-size: 28px;
-        font-weight: 600;
-        color: #f59e0b;
-        letter-spacing: -0.01em;
-    }
-    .spd-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-    }
-    .spd-stat {
-        background: #131b2e;
-        border: 1px solid #2e3447;
-        border-radius: 8px;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-    .spd-stat-label {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        color: #a08e7a;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    .spd-stat-value {
-        font-family: 'Hanken Grotesk', sans-serif;
-        font-size: 20px;
-        font-weight: 600;
-        color: #dce1fb;
-    }
-    /* Divider */
-    .spd-divider {
-        height: 1px;
-        background: linear-gradient(to right, #2e3447, transparent);
-        margin: 0 0 48px;
-    }
-    /* Variants section */
-    .spd-section-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 32px;
-        flex-wrap: wrap;
-        gap: 16px;
-    }
-    .spd-section-title {
-        font-family: 'Hanken Grotesk', sans-serif;
-        font-size: 22px;
-        font-weight: 600;
-        color: #dce1fb;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .spd-section-title span {
-        font-size: 14px;
-        font-family: 'JetBrains Mono', monospace;
-        color: #a08e7a;
-        font-weight: 400;
-    }
-    .spd-btn-primary {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        background: #f59e0b;
-        color: #0c1324;
-        border: none;
-        border-radius: 6px;
-        font-size: 13px;
-        font-weight: 600;
-        font-family: 'Inter', sans-serif;
-        cursor: pointer;
-        transition: background 0.2s, transform 0.1s;
-        white-space: nowrap;
-    }
-    .spd-btn-primary:hover { background: #d97706; }
-    .spd-btn-primary:active { transform: scale(0.98); }
-    .spd-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .spd-btn-ghost {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        background: transparent;
-        color: #a08e7a;
-        border: 1px solid #2e3447;
-        border-radius: 6px;
-        font-size: 13px;
-        font-family: 'Inter', sans-serif;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .spd-btn-ghost:hover { border-color: #534434; color: #dce1fb; }
-    /* Variant card */
-    .spd-variants-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 20px;
-    }
-    .spd-variant-card {
-        background: #131b2e;
-        border: 1px solid #2e3447;
-        border-radius: 12px;
-        padding: 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-        transition: border-color 0.25s, box-shadow 0.25s;
-        position: relative;
-    }
-    .spd-variant-card:hover { border-color: rgba(245,158,11,0.3); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-    .spd-variant-top {
-        display: flex;
-        align-items: flex-start;
-        gap: 14px;
-    }
-    .spd-variant-img {
-        width: 64px;
-        height: 64px;
-        border-radius: 8px;
-        border: 1px solid #2e3447;
-        overflow: hidden;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #0c1324;
-        color: #2e3447;
-    }
-    .spd-variant-img img { width: 100%; height: 100%; object-fit: cover; }
-    .spd-variant-info { flex: 1; min-width: 0; }
-    .spd-variant-price {
-        font-family: 'Hanken Grotesk', sans-serif;
-        font-size: 20px;
-        font-weight: 600;
-        color: #ffc174;
-    }
-    .spd-variant-attrs {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 6px;
-    }
-    .spd-attr-chip {
-        padding: 3px 8px;
-        background: rgba(46,52,71,0.7);
-        border: 1px solid #2e3447;
-        border-radius: 4px;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        color: #a08e7a;
-        white-space: nowrap;
-    }
-    .spd-attr-chip strong { color: #dce1fb; font-weight: 500; }
-    .spd-stock-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 4px;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        font-weight: 500;
-    }
-    .spd-stock-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-    }
-    /* Stock control */
-    .spd-stock-ctrl {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-    .spd-stock-ctrl-label {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        color: #a08e7a;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        flex: 0 0 100%;
-        margin-bottom: 4px;
-    }
-    .spd-qty-btn {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        border: 1px solid #2e3447;
-        background: #0c1324;
-        color: #dce1fb;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.18s;
-        flex-shrink: 0;
-    }
-    .spd-qty-btn:hover { border-color: #f59e0b; color: #f59e0b; background: rgba(245,158,11,0.08); }
-    .spd-qty-input {
-        width: 64px;
-        height: 32px;
-        background: #0c1324;
-        border: 1px solid #2e3447;
-        border-radius: 6px;
-        color: #dce1fb;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 14px;
-        text-align: center;
-        outline: none;
-        transition: border-color 0.18s;
-    }
-    .spd-qty-input:focus { border-color: #f59e0b; box-shadow: 0 0 0 1px rgba(245,158,11,0.2); }
-    .spd-save-btn {
-        height: 32px;
-        padding: 0 12px;
-        background: rgba(245,158,11,0.12);
-        border: 1px solid rgba(245,158,11,0.3);
-        border-radius: 6px;
-        color: #f59e0b;
-        font-size: 12px;
-        font-family: 'JetBrains Mono', monospace;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        white-space: nowrap;
-    }
-    .spd-save-btn:hover { background: rgba(245,158,11,0.2); }
-    .spd-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .spd-delete-btn {
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        width: 30px;
-        height: 30px;
-        border-radius: 6px;
-        border: 1px solid transparent;
-        background: transparent;
-        color: #534434;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .spd-delete-btn:hover { color: #f87171; border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.08); }
-    /* Empty variant state */
-    .spd-empty {
-        background: #131b2e;
-        border: 1px dashed #2e3447;
-        border-radius: 12px;
-        padding: 56px 24px;
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 16px;
-    }
-    .spd-empty-icon {
-        width: 64px;
-        height: 64px;
-        border-radius: 16px;
-        background: rgba(245,158,11,0.08);
-        border: 1px solid rgba(245,158,11,0.15);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #f59e0b;
-    }
-    .spd-empty h3 { font-family: 'Hanken Grotesk', sans-serif; font-size: 18px; color: #dce1fb; margin: 0; }
-    .spd-empty p { font-size: 14px; color: #a08e7a; margin: 0; max-width: 340px; line-height: 1.6; }
-
-    /* ── Modal ──────────────────────────────────────────────────── */
-    .spd-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(7,13,31,0.75);
-        backdrop-filter: blur(6px);
-        z-index: 100;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-        animation: spd-fade-in 0.2s ease;
-    }
-    @keyframes spd-fade-in { from { opacity: 0; } to { opacity: 1; } }
-    .spd-modal {
-        background: #131b2e;
-        border: 1px solid #2e3447;
-        border-radius: 16px;
-        width: 100%;
-        max-width: 600px;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: 0 32px 64px rgba(0,0,0,0.6);
-        animation: spd-slide-up 0.25s ease;
-    }
-    @keyframes spd-slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .spd-modal-header {
-        padding: 24px 28px 20px;
-        border-bottom: 1px solid #2e3447;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .spd-modal-title {
-        font-family: 'Hanken Grotesk', sans-serif;
-        font-size: 20px;
-        font-weight: 600;
-        color: #dce1fb;
-        margin: 0;
-    }
-    .spd-modal-close {
-        width: 34px;
-        height: 34px;
-        border-radius: 8px;
-        border: 1px solid #2e3447;
-        background: transparent;
-        color: #a08e7a;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .spd-modal-close:hover { color: #dce1fb; border-color: #534434; }
-    .spd-modal-body { padding: 28px; display: flex; flex-direction: column; gap: 24px; }
-    .spd-modal-footer {
-        padding: 20px 28px 24px;
-        border-top: 1px solid #2e3447;
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-    }
-    /* Form elements */
-    .spd-field-group { display: flex; flex-direction: column; gap: 8px; }
-    .spd-label {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        font-weight: 500;
-        color: #a08e7a;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    .spd-input {
-        background: #0c1324;
-        border: 1px solid #2e3447;
-        border-radius: 8px;
-        color: #dce1fb;
-        font-size: 14px;
-        font-family: 'Inter', sans-serif;
-        padding: 10px 14px;
-        outline: none;
-        width: 100%;
-        box-sizing: border-box;
-        transition: border-color 0.18s, box-shadow 0.18s;
-    }
-    .spd-input:focus { border-color: #f59e0b; box-shadow: 0 0 0 1px rgba(245,158,11,0.18); }
-    .spd-input::placeholder { color: #534434; }
-    .spd-select {
-        background: #0c1324;
-        border: 1px solid #2e3447;
-        border-radius: 8px;
-        color: #dce1fb;
-        font-size: 14px;
-        font-family: 'Inter', sans-serif;
-        padding: 10px 14px;
-        outline: none;
-        cursor: pointer;
-        transition: border-color 0.18s;
-    }
-    .spd-select:focus { border-color: #f59e0b; }
-    .spd-row { display: flex; gap: 12px; }
-    .spd-row > * { flex: 1; }
-    /* Attributes */
-    .spd-attr-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-    }
-    .spd-attr-key { flex: 1; }
-    .spd-attr-val { flex: 1.4; }
-    .spd-attr-remove {
-        width: 32px;
-        height: 32px;
-        background: transparent;
-        border: 1px solid #2e3447;
-        border-radius: 6px;
-        color: #a08e7a;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        flex-shrink: 0;
-        transition: all 0.2s;
-    }
-    .spd-attr-remove:hover { border-color: rgba(248,113,113,0.4); color: #f87171; background: rgba(248,113,113,0.08); }
-    .spd-add-attr {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border: 1px dashed #2e3447;
-        border-radius: 6px;
-        background: transparent;
-        color: #a08e7a;
-        font-size: 12px;
-        font-family: 'JetBrains Mono', monospace;
-        cursor: pointer;
-        transition: all 0.2s;
-        width: fit-content;
-        margin-top: 4px;
-    }
-    .spd-add-attr:hover { border-color: #f59e0b; color: #f59e0b; }
-    /* Image dropzone */
-    .spd-dropzone {
-        border: 1.5px dashed #2e3447;
-        border-radius: 10px;
-        padding: 28px;
-        text-align: center;
-        cursor: pointer;
-        transition: border-color 0.2s, background 0.2s;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        color: #a08e7a;
-        background: rgba(12,19,36,0.5);
-    }
-    .spd-dropzone:hover, .spd-dropzone.dragging {
-        border-color: #f59e0b;
-        background: rgba(245,158,11,0.04);
-    }
-    .spd-dropzone-icon { color: #534434; }
-    .spd-dropzone p { margin: 0; font-size: 13px; line-height: 1.5; }
-    .spd-dropzone-sub { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #534434; text-transform: uppercase; letter-spacing: 0.05em; }
-    .spd-preview-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-    .spd-preview-item {
-        position: relative;
-        width: 72px;
-        height: 72px;
-        border-radius: 6px;
-        overflow: hidden;
-        border: 1px solid #2e3447;
-    }
-    .spd-preview-item img { width: 100%; height: 100%; object-fit: cover; }
-    .spd-preview-remove {
-        position: absolute;
-        top: 2px;
-        right: 2px;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: rgba(0,0,0,0.7);
-        border: none;
-        color: #f87171;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 10px;
-        line-height: 1;
-    }
-    /* Toast */
-    .spd-toast {
-        position: fixed;
-        bottom: 32px;
-        right: 32px;
-        padding: 14px 20px;
-        border-radius: 10px;
-        font-size: 14px;
-        font-family: 'Inter', sans-serif;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        z-index: 200;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-        animation: spd-slide-up 0.25s ease;
-        max-width: 360px;
-    }
-    .spd-toast-success { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.25); color: #34d399; }
-    .spd-toast-error { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.25); color: #f87171; }
-    /* Skeleton */
-    .spd-skeleton { background: #1e293b; border-radius: 6px; animation: spd-pulse 1.5s ease-in-out infinite; }
-    @keyframes spd-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-    /* Confirm overlay */
-    .spd-confirm {
-        position: absolute;
-        inset: 0;
-        background: rgba(12,19,36,0.92);
-        border-radius: 12px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 14px;
-        z-index: 10;
-        padding: 24px;
-        text-align: center;
-    }
-    .spd-confirm p { font-size: 14px; color: #dce1fb; margin: 0; line-height: 1.5; }
-    .spd-confirm-actions { display: flex; gap: 10px; }
-    .spd-btn-danger {
-        padding: 8px 16px;
-        background: rgba(248,113,113,0.15);
-        border: 1px solid rgba(248,113,113,0.35);
-        border-radius: 6px;
-        color: #f87171;
-        font-size: 13px;
-        font-family: 'Inter', sans-serif;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .spd-btn-danger:hover { background: rgba(248,113,113,0.25); }
-
-    /* Scrollbar */
-    .spd-modal::-webkit-scrollbar { width: 6px; }
-    .spd-modal::-webkit-scrollbar-track { background: transparent; }
-    .spd-modal::-webkit-scrollbar-thumb { background: #2e3447; border-radius: 3px; }
-`;
 
 /* ═══════════════════════════════════════════════════════════════════
    COMPONENT
@@ -794,7 +83,6 @@ const SellerProductDetails = () => {
             setLoading(true);
             const data = await handleGetProductById(productId);
             setProduct(data);
-            // seed stock drafts from current data
             const draft = {};
             (data?.variants || []).forEach(v => { draft[v._id] = v.stock ?? 0; });
             setStockDraft(draft);
@@ -808,11 +96,9 @@ const SellerProductDetails = () => {
 
     useEffect(() => { fetchProduct(); }, [fetchProduct]);
 
-    /* ── Metric helpers ─────────────────────────────────────────── */
     const variants = product?.variants || [];
     const totalInventory = variants.reduce((acc, v) => acc + (v.stock || 0), 0);
 
-    /* ── Stock save ─────────────────────────────────────────────── */
     const saveStock = async (variantId) => {
         setSavingStock(prev => ({ ...prev, [variantId]: true }));
         try {
@@ -831,7 +117,6 @@ const SellerProductDetails = () => {
         }
     };
 
-    /* ── Delete variant ─────────────────────────────────────────── */
     const doDelete = async (variantId) => {
         setDeletingId(variantId);
         try {
@@ -850,7 +135,6 @@ const SellerProductDetails = () => {
         }
     };
 
-    /* ── Modal helpers ──────────────────────────────────────────── */
     const resetModal = () => {
         setAttributes([{ key: '', value: '' }]);
         setPriceAmount('');
@@ -863,16 +147,13 @@ const SellerProductDetails = () => {
     const openModal = () => { resetModal(); setShowModal(true); };
     const closeModal = () => setShowModal(false);
 
-    const handleAttrChange = (idx, field, val) => {
-        setAttributes(prev => prev.map((a, i) => i === idx ? { ...a, [field]: val } : a));
-    };
+    const handleAttrChange = (idx, field, val) => setAttributes(prev => prev.map((a, i) => i === idx ? { ...a, [field]: val } : a));
     const addAttr = () => setAttributes(prev => [...prev, { key: '', value: '' }]);
     const removeAttr = (idx) => setAttributes(prev => prev.filter((_, i) => i !== idx));
 
     const processFiles = (files) => {
         const newImgs = Array.from(files).slice(0, 5 - variantImages.length).map(file => ({
-            file,
-            preview: URL.createObjectURL(file),
+            file, preview: URL.createObjectURL(file),
         }));
         setVariantImages(prev => [...prev, ...newImgs]);
     };
@@ -884,12 +165,8 @@ const SellerProductDetails = () => {
     const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files) processFiles(e.dataTransfer.files); };
 
     const handleSubmitVariant = async () => {
-        if (!priceAmount || isNaN(Number(priceAmount))) {
-            showToast('error', 'Please enter a valid price.'); return;
-        }
-        if (!stock || isNaN(Number(stock))) {
-            showToast('error', 'Please enter a valid stock quantity.'); return;
-        }
+        if (!priceAmount || isNaN(Number(priceAmount))) return showToast('error', 'Please enter a valid price.');
+        if (!stock || isNaN(Number(stock))) return showToast('error', 'Please enter a valid stock quantity.');
 
         setModalLoading(true);
         try {
@@ -919,410 +196,328 @@ const SellerProductDetails = () => {
         }
     };
 
-    /* ─────────────────────────────────────────── RENDER ─────────── */
     return (
-        <>
-            <style>{styles}</style>
-            <div className="spd-root">
-                {/* ── Top Bar ─────────────────────────────────────── */}
-                <header className="spd-topbar">
-                    <Link to="/" className="spd-logo">ZENTR<span>A</span></Link>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        <Link to="/seller/dashboard" className="spd-nav-btn">
-                            <IconArrowLeft /> Dashboard
-                        </Link>
-                        <button className="spd-btn-primary" onClick={openModal}>
-                            <IconPlus /> Add Variant
-                        </button>
+        <div className="min-h-screen bg-[#09090b] text-[#fafafa] font-sans pb-24 relative">
+            {/* Top Bar */}
+            <header className="sticky top-0 z-40 bg-[#09090b]/80 backdrop-blur-md border-b border-[#27272a] h-16 flex items-center justify-between px-6 lg:px-12">
+                <Link to="/" className="text-xl font-bold tracking-tight text-[#fafafa]" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                    ZENTR<span className="text-[#f59e0b]">A</span>
+                </Link>
+                <div className="flex gap-3">
+                    <Link to="/seller/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-[#71717a] border border-[#27272a] rounded-xl hover:text-[#fafafa] hover:bg-[#27272a] transition-all">
+                        <IconArrowLeft /> Dashboard
+                    </Link>
+                    <button onClick={openModal} className="flex items-center gap-2 bg-[#f59e0b] hover:bg-[#d97706] text-[#09090b] font-bold text-sm px-4 py-2 rounded-xl transition-all shadow-md active:scale-95">
+                        <IconPlus /> Add Variant
+                    </button>
+                </div>
+            </header>
+
+            <main className="max-w-[1280px] mx-auto px-6 lg:px-12 pt-12 relative">
+                {/* Ambient glow */}
+                <div className="absolute top-0 right-10 w-[400px] h-[400px] bg-[#f59e0b]/5 rounded-full blur-[140px] pointer-events-none" />
+
+                {loading ? (
+                    /* Skeleton */
+                    <div className="animate-pulse">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
+                            <div>
+                                <div className="aspect-[4/3] bg-[#27272a]/50 rounded-2xl mb-4" />
+                                <div className="flex gap-2">
+                                    {[1, 2, 3].map(n => <div key={n} className="w-16 h-16 bg-[#27272a]/50 rounded-xl" />)}
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-4 pt-2">
+                                <div className="h-6 w-32 bg-[#27272a]/50 rounded" />
+                                <div className="h-10 w-full bg-[#27272a]/50 rounded" />
+                                <div className="h-20 w-3/4 bg-[#27272a]/50 rounded" />
+                                <div className="grid grid-cols-3 gap-3 mt-6">
+                                    {[1, 2, 3].map(n => <div key={n} className="h-24 bg-[#27272a]/50 rounded-xl" />)}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </header>
-
-                {/* ── Main Content ────────────────────────────────── */}
-                <main className="spd-container">
-
-                    {loading ? (
-                        /* Skeleton */
-                        <>
-                            <div className="spd-hero">
-                                <div className="spd-gallery">
-                                    <div className="spd-skeleton" style={{ aspectRatio: '4/3', borderRadius: 10 }} />
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        {[1, 2, 3].map(n => <div key={n} className="spd-skeleton" style={{ width: 64, height: 64, borderRadius: 6 }} />)}
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8 }}>
-                                    <div className="spd-skeleton" style={{ height: 20, width: 120, borderRadius: 4 }} />
-                                    <div className="spd-skeleton" style={{ height: 40, width: '80%', borderRadius: 6 }} />
-                                    <div className="spd-skeleton" style={{ height: 40, width: '60%', borderRadius: 6 }} />
-                                    <div className="spd-skeleton" style={{ height: 80, borderRadius: 8 }} />
-                                    <div className="spd-stats-grid">
-                                        {[1, 2, 3].map(n => <div key={n} className="spd-skeleton" style={{ height: 80, borderRadius: 8 }} />)}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="spd-divider" />
-                            <div className="spd-variants-grid">
-                                {[1, 2, 3].map(n => <div key={n} className="spd-skeleton" style={{ height: 220, borderRadius: 12 }} />)}
-                            </div>
-                        </>
-                    ) : product ? (
-                        <>
-                            {/* ── Hero ─────────────────────────────── */}
-                            <section className="spd-hero">
-                                {/* Gallery */}
-                                <div className="spd-gallery">
-                                    <div className="spd-gallery-main">
-                                        {product.images?.length > 0 ? (
-                                            <img src={product.images[activeImage]?.url} alt={product.title} />
-                                        ) : (
-                                            <div style={{ color: '#2e3447' }}><IconImage /></div>
-                                        )}
-                                    </div>
-                                    {product.images?.length > 1 && (
-                                        <div className="spd-gallery-thumbs">
-                                            {product.images.map((img, idx) => (
-                                                <div
-                                                    key={img._id || idx}
-                                                    className={`spd-thumb${activeImage === idx ? ' active' : ''}`}
-                                                    onClick={() => setActiveImage(idx)}
-                                                >
-                                                    <img src={img.url} alt="" />
-                                                </div>
-                                            ))}
-                                        </div>
+                ) : product ? (
+                    <>
+                        {/* Hero Section */}
+                        <section className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
+                            <div className="flex flex-col gap-3">
+                                <div className="aspect-[4/3] bg-[#18181b] border border-[#27272a] rounded-2xl overflow-hidden flex items-center justify-center">
+                                    {product.images?.length > 0 ? (
+                                        <img src={product.images[activeImage]?.url} alt={product.title} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <IconImage />
                                     )}
                                 </div>
-
-                                {/* Product Info */}
-                                <div className="spd-product-info">
-                                    <div className="spd-badge-row">
-                                        <span className="spd-badge spd-badge-amber">Seller Listing</span>
-                                        <span className="spd-badge spd-badge-slate" style={{ fontFamily: 'JetBrains Mono', fontSize: 10 }}>
-                                            {product._id?.slice(-8).toUpperCase()}
-                                        </span>
-                                    </div>
-                                    <h1 className="spd-title">{product.title}</h1>
-                                    <p className="spd-desc">{product.description}</p>
-                                    <div className="spd-price-row">
-                                        <span className="spd-price-main">{formatPrice(product.price)}</span>
-                                        <span className="spd-badge spd-badge-slate">Base Price</span>
-                                    </div>
-
-                                    <div className="spd-stats-grid">
-                                        <div className="spd-stat">
-                                            <span className="spd-stat-label">Variants</span>
-                                            <span className="spd-stat-value">{variants.length}</span>
-                                        </div>
-                                        <div className="spd-stat">
-                                            <span className="spd-stat-label">Inventory</span>
-                                            <span className="spd-stat-value">{totalInventory}</span>
-                                        </div>
-                                        <div className="spd-stat">
-                                            <span className="spd-stat-label">Images</span>
-                                            <span className="spd-stat-value">{product.images?.length || 0}</span>
-                                        </div>
-                                    </div>
-
-                                    <p style={{ fontSize: 11, fontFamily: 'JetBrains Mono', color: '#534434', margin: 0 }}>
-                                        Created {product.createdAt ? new Date(product.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
-                                    </p>
-                                </div>
-                            </section>
-
-                            <div className="spd-divider" />
-
-                            {/* ── Variants Section ─────────────────── */}
-                            <section>
-                                <div className="spd-section-header">
-                                    <h2 className="spd-section-title">
-                                        Product Variants
-                                        <span>{variants.length} {variants.length === 1 ? 'variant' : 'variants'}</span>
-                                    </h2>
-                                    <button className="spd-btn-primary" onClick={openModal}>
-                                        <IconPlus /> New Variant
-                                    </button>
-                                </div>
-
-                                {variants.length === 0 ? (
-                                    <div className="spd-empty">
-                                        <div className="spd-empty-icon"><IconPackage /></div>
-                                        <h3>No Variants Yet</h3>
-                                        <p>Add your first product variant with unique attributes like Color, Size, or Material and set initial stock levels.</p>
-                                        <button className="spd-btn-primary" onClick={openModal} style={{ marginTop: 8 }}>
-                                            <IconPlus /> Create First Variant
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="spd-variants-grid">
-                                        {variants.map((variant) => {
-                                            const stockStatus = getStockStatus(variant.stock ?? 0);
-                                            const attrs = getAttrsDisplay(variant.attridutes);
-                                            const thumbImg = variant.images?.[0]?.url;
-                                            const isSaving = savingStock[variant._id];
-                                            const isSaved = savedStock[variant._id];
-                                            const isDeleting = deletingId === variant._id;
-                                            const isConfirming = confirmDelete === variant._id;
-
-                                            return (
-                                                <div key={variant._id} className="spd-variant-card">
-                                                    {/* Confirm Delete overlay */}
-                                                    {isConfirming && (
-                                                        <div className="spd-confirm">
-                                                            <div style={{ color: '#f87171' }}><IconTrash /></div>
-                                                            <p>Delete this variant?<br /><span style={{ color: '#a08e7a', fontSize: 12 }}>This action cannot be undone.</span></p>
-                                                            <div className="spd-confirm-actions">
-                                                                <button className="spd-btn-ghost" onClick={() => setConfirmDelete(null)}>Cancel</button>
-                                                                <button
-                                                                    className="spd-btn-danger"
-                                                                    disabled={isDeleting}
-                                                                    onClick={() => doDelete(variant._id)}
-                                                                >
-                                                                    {isDeleting ? 'Deleting…' : 'Delete'}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Delete trigger */}
-                                                    <button
-                                                        className="spd-delete-btn"
-                                                        onClick={() => setConfirmDelete(variant._id)}
-                                                        title="Delete variant"
-                                                    >
-                                                        <IconTrash />
-                                                    </button>
-
-                                                    {/* Top row: image + info */}
-                                                    <div className="spd-variant-top">
-                                                        <div className="spd-variant-img">
-                                                            {thumbImg ? <img src={thumbImg} alt="variant" /> : <IconImage />}
-                                                        </div>
-                                                        <div className="spd-variant-info">
-                                                            <div className="spd-variant-price">{formatPrice(variant.price)}</div>
-                                                            {attrs.length > 0 ? (
-                                                                <div className="spd-variant-attrs">
-                                                                    {attrs.map(([k, v]) => (
-                                                                        <span key={k} className="spd-attr-chip">
-                                                                            <strong>{k}:</strong> {v}
-                                                                        </span>
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="spd-variant-attrs">
-                                                                    <span className="spd-attr-chip" style={{ color: '#534434' }}>No attributes</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Stock badge */}
-                                                    <div>
-                                                        <span
-                                                            className="spd-stock-badge"
-                                                            style={{ background: stockStatus.bg, color: stockStatus.color }}
-                                                        >
-                                                            <span className="spd-stock-dot" style={{ background: stockStatus.dot }} />
-                                                            {stockStatus.label}
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Stock Controls */}
-                                                    <div className="spd-stock-ctrl">
-                                                        <span className="spd-stock-ctrl-label">Manage Stock</span>
-                                                        <button
-                                                            className="spd-qty-btn"
-                                                            onClick={() => setStockDraft(prev => ({
-                                                                ...prev,
-                                                                [variant._id]: Math.max(0, (prev[variant._id] ?? 0) - 1)
-                                                            }))}
-                                                        >
-                                                            <IconMinus />
-                                                        </button>
-                                                        <input
-                                                            type="number"
-                                                            className="spd-qty-input"
-                                                            min="0"
-                                                            value={stockDraft[variant._id] ?? variant.stock ?? 0}
-                                                            onChange={e => setStockDraft(prev => ({
-                                                                ...prev,
-                                                                [variant._id]: Math.max(0, parseInt(e.target.value) || 0)
-                                                            }))}
-                                                        />
-                                                        <button
-                                                            className="spd-qty-btn"
-                                                            onClick={() => setStockDraft(prev => ({
-                                                                ...prev,
-                                                                [variant._id]: (prev[variant._id] ?? 0) + 1
-                                                            }))}
-                                                        >
-                                                            <IconPlus />
-                                                        </button>
-                                                        <button
-                                                            className="spd-save-btn"
-                                                            onClick={() => saveStock(variant._id)}
-                                                            disabled={isSaving}
-                                                        >
-                                                            {isSaved ? <><IconCheck /> Saved</> : isSaving ? 'Saving…' : 'Save'}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                {product.images?.length > 1 && (
+                                    <div className="flex gap-2 flex-wrap">
+                                        {product.images.map((img, idx) => (
+                                            <div
+                                                key={img._id || idx}
+                                                onClick={() => setActiveImage(idx)}
+                                                className={`w-16 h-16 rounded-xl border-2 overflow-hidden cursor-pointer transition-all ${activeImage === idx ? 'border-[#f59e0b] scale-105' : 'border-[#27272a] hover:border-[#3f3f46]'}`}
+                                            >
+                                                <img src={img.url} alt="" className="w-full h-full object-cover" />
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
-                            </section>
-                        </>
-                    ) : (
-                        /* Product not found */
-                        <div className="spd-empty" style={{ marginTop: 80 }}>
-                            <div className="spd-empty-icon"><IconPackage /></div>
-                            <h3>Product Not Found</h3>
-                            <p>This product doesn't exist or you don't have access to it.</p>
-                            <Link to="/seller/dashboard" className="spd-btn-primary" style={{ textDecoration: 'none', marginTop: 8 }}>
-                                <IconArrowLeft /> Back to Dashboard
-                            </Link>
-                        </div>
-                    )}
-                </main>
-
-                {/* ══ Add Variant Modal ══════════════════════════════════════ */}
-                {showModal && (
-                    <div className="spd-overlay" onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
-                        <div className="spd-modal">
-                            <div className="spd-modal-header">
-                                <h2 className="spd-modal-title">Add New Variant</h2>
-                                <button className="spd-modal-close" onClick={closeModal}><IconClose /></button>
                             </div>
 
-                            <div className="spd-modal-body">
-                                {/* Attributes */}
-                                <div className="spd-field-group">
-                                    <label className="spd-label">Attributes</label>
-                                    {attributes.map((attr, idx) => (
-                                        <div key={idx} className="spd-attr-row">
-                                            <div className="spd-attr-key">
-                                                <input
-                                                    className="spd-input"
-                                                    placeholder="e.g. Color"
-                                                    value={attr.key}
-                                                    onChange={e => handleAttrChange(idx, 'key', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="spd-attr-val">
-                                                <input
-                                                    className="spd-input"
-                                                    placeholder="e.g. Midnight Black"
-                                                    value={attr.value}
-                                                    onChange={e => handleAttrChange(idx, 'value', e.target.value)}
-                                                />
-                                            </div>
-                                            {attributes.length > 1 && (
-                                                <button className="spd-attr-remove" onClick={() => removeAttr(idx)}>
-                                                    <IconClose />
+                            <div className="flex flex-col gap-5 pt-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2 py-0.5 rounded-md">Seller Listing</span>
+                                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#71717a] bg-[#27272a] border border-[#3f3f46] px-2 py-0.5 rounded-md">{product._id?.slice(-8)}</span>
+                                </div>
+                                
+                                <div>
+                                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#fafafa] mb-2" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                                        {product.title}
+                                    </h1>
+                                    <p className="text-sm text-[#a1a1aa] leading-relaxed">{product.description}</p>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl font-bold text-[#f59e0b] font-mono">{formatPrice(product.price)}</span>
+                                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#71717a] bg-[#27272a] px-2 py-0.5 rounded-md">Base Price</span>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="bg-[#18181b] border border-[#27272a] rounded-xl p-4 flex flex-col gap-1">
+                                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#71717a]">Variants</span>
+                                        <span className="text-xl font-bold text-[#fafafa]">{variants.length}</span>
+                                    </div>
+                                    <div className="bg-[#18181b] border border-[#27272a] rounded-xl p-4 flex flex-col gap-1">
+                                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#71717a]">Inventory</span>
+                                        <span className="text-xl font-bold text-[#fafafa]">{totalInventory}</span>
+                                    </div>
+                                    <div className="bg-[#18181b] border border-[#27272a] rounded-xl p-4 flex flex-col gap-1">
+                                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#71717a]">Images</span>
+                                        <span className="text-xl font-bold text-[#fafafa]">{product.images?.length || 0}</span>
+                                    </div>
+                                </div>
+
+                                <p className="text-[10px] font-mono text-[#52525b] uppercase mt-2">
+                                    Created {product.createdAt ? new Date(product.createdAt).toLocaleDateString() : '—'}
+                                </p>
+                            </div>
+                        </section>
+
+                        <div className="h-px w-full bg-gradient-to-r from-[#27272a] to-transparent mb-12" />
+
+                        {/* Variants Section */}
+                        <section>
+                            <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+                                <h2 className="text-2xl font-bold text-[#fafafa] flex items-center gap-3" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                                    Product Variants
+                                    <span className="text-sm font-normal font-mono text-[#71717a]">{variants.length} {variants.length === 1 ? 'variant' : 'variants'}</span>
+                                </h2>
+                                <button onClick={openModal} className="flex items-center gap-2 bg-[#f59e0b] hover:bg-[#d97706] text-[#09090b] font-bold text-sm px-4 py-2 rounded-xl transition-all shadow-md">
+                                    <IconPlus /> New Variant
+                                </button>
+                            </div>
+
+                            {variants.length === 0 ? (
+                                <div className="bg-[#18181b] border border-dashed border-[#3f3f46] rounded-2xl p-16 text-center flex flex-col items-center gap-4">
+                                    <div className="w-16 h-16 rounded-2xl bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center text-[#f59e0b]">
+                                        <IconPackage />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-[#fafafa]">No Variants Yet</h3>
+                                    <p className="text-sm text-[#71717a] max-w-sm">Add your first product variant with unique attributes like Color, Size, or Material and set initial stock levels.</p>
+                                    <button onClick={openModal} className="mt-2 flex items-center gap-2 bg-[#f59e0b] text-[#09090b] font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-[#d97706] transition-all shadow-md">
+                                        <IconPlus /> Create First Variant
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    {variants.map(variant => {
+                                        const stockStatus = getStockStatus(variant.stock ?? 0);
+                                        const attrs = getAttrsDisplay(variant.attridutes);
+                                        const thumbImg = variant.images?.[0]?.url;
+                                        const isSaving = savingStock[variant._id];
+                                        const isSaved = savedStock[variant._id];
+                                        const isDeleting = deletingId === variant._id;
+                                        const isConfirming = confirmDelete === variant._id;
+
+                                        return (
+                                            <div key={variant._id} className="relative bg-[#18181b] border border-[#27272a] hover:border-[#f59e0b]/40 rounded-2xl p-6 flex flex-col gap-5 transition-all shadow-lg">
+                                                
+                                                {/* Delete Overlay */}
+                                                {isConfirming && (
+                                                    <div className="absolute inset-0 bg-[#09090b]/90 backdrop-blur-sm rounded-2xl z-10 flex flex-col items-center justify-center gap-3 p-6 text-center border border-[#f87171]/20">
+                                                        <div className="text-[#f87171]"><IconTrash /></div>
+                                                        <p className="text-sm font-semibold text-[#fafafa]">Delete this variant?</p>
+                                                        <p className="text-xs text-[#71717a] mb-2">This action cannot be undone.</p>
+                                                        <div className="flex gap-2">
+                                                            <button onClick={() => setConfirmDelete(null)} className="px-4 py-2 text-sm text-[#fafafa] bg-[#27272a] rounded-lg hover:bg-[#3f3f46] transition-colors">Cancel</button>
+                                                            <button onClick={() => doDelete(variant._id)} disabled={isDeleting} className="px-4 py-2 text-sm text-[#f87171] bg-[#f87171]/10 border border-[#f87171]/20 rounded-lg hover:bg-[#f87171]/20 transition-colors">
+                                                                {isDeleting ? 'Deleting…' : 'Delete'}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Delete Btn */}
+                                                <button onClick={() => setConfirmDelete(variant._id)} className="absolute top-4 right-4 w-8 h-8 rounded-lg text-[#52525b] hover:text-[#f87171] hover:bg-[#f87171]/10 flex items-center justify-center transition-all cursor-pointer">
+                                                    <IconTrash />
                                                 </button>
-                                            )}
+
+                                                {/* Info */}
+                                                <div className="flex gap-4 pr-8">
+                                                    <div className="w-16 h-16 shrink-0 bg-[#09090b] border border-[#27272a] rounded-xl flex items-center justify-center overflow-hidden text-[#3f3f46]">
+                                                        {thumbImg ? <img src={thumbImg} alt="variant" className="w-full h-full object-cover" /> : <IconImage />}
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-lg font-bold font-mono text-[#f59e0b] mb-2">{formatPrice(variant.price)}</div>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {attrs.length > 0 ? attrs.map(([k, v]) => (
+                                                                <span key={k} className="px-2 py-0.5 bg-[#27272a] border border-[#3f3f46] rounded-md text-[10px] font-mono text-[#a1a1aa] uppercase tracking-wider">
+                                                                    <strong className="text-[#fafafa]">{k}:</strong> {v}
+                                                                </span>
+                                                            )) : <span className="text-[10px] font-mono text-[#52525b]">No attributes</span>}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Badge */}
+                                                <div>
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold uppercase tracking-widest border" style={{ backgroundColor: stockStatus.bg, color: stockStatus.color, borderColor: `${stockStatus.color}40` }}>
+                                                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stockStatus.dot }} />
+                                                        {stockStatus.label}
+                                                    </span>
+                                                </div>
+
+                                                {/* Controls */}
+                                                <div className="pt-4 border-t border-[#27272a] flex items-center justify-between gap-2 flex-wrap">
+                                                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#71717a] w-full mb-1">Manage Stock</span>
+                                                    <div className="flex items-center gap-1 bg-[#09090b] border border-[#27272a] rounded-lg p-1">
+                                                        <button onClick={() => setStockDraft(prev => ({ ...prev, [variant._id]: Math.max(0, (prev[variant._id] ?? 0) - 1) }))} className="w-7 h-7 flex items-center justify-center rounded-md text-[#a1a1aa] hover:bg-[#27272a] hover:text-[#fafafa] transition-colors cursor-pointer"><IconMinus /></button>
+                                                        <input type="number" min="0" value={stockDraft[variant._id] ?? variant.stock ?? 0} onChange={e => setStockDraft(prev => ({ ...prev, [variant._id]: Math.max(0, parseInt(e.target.value) || 0) }))} className="w-12 h-7 bg-transparent text-center font-mono text-sm text-[#fafafa] outline-none" />
+                                                        <button onClick={() => setStockDraft(prev => ({ ...prev, [variant._id]: (prev[variant._id] ?? 0) + 1 }))} className="w-7 h-7 flex items-center justify-center rounded-md text-[#a1a1aa] hover:bg-[#27272a] hover:text-[#fafafa] transition-colors cursor-pointer"><IconPlus /></button>
+                                                    </div>
+                                                    <button onClick={() => saveStock(variant._id)} disabled={isSaving} className="h-9 px-4 rounded-lg bg-[#f59e0b]/10 hover:bg-[#f59e0b]/20 border border-[#f59e0b]/30 text-[#f59e0b] text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer">
+                                                        {isSaved ? <><IconCheck /> Saved</> : isSaving ? 'Saving…' : 'Save'}
+                                                    </button>
+                                                </div>
+
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </section>
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-20 mt-10 bg-[#18181b] border border-dashed border-[#27272a] rounded-2xl text-center">
+                        <div className="text-[#3f3f46] mb-4"><IconPackage /></div>
+                        <h3 className="text-xl font-bold text-[#fafafa] mb-2">Product Not Found</h3>
+                        <p className="text-[#71717a] text-sm mb-6">This product doesn't exist or you don't have access to it.</p>
+                        <Link to="/seller/dashboard" className="bg-[#27272a] hover:bg-[#3f3f46] text-[#fafafa] px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2">
+                            <IconArrowLeft /> Back to Dashboard
+                        </Link>
+                    </div>
+                )}
+            </main>
+
+            {/* Modal */}
+            {showModal && (
+                <div className="fixed inset-0 z-50 bg-[#09090b]/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
+                    <div className="bg-[#18181b] border border-[#27272a] rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl animate-fade-in flex flex-col">
+                        
+                        <div className="sticky top-0 bg-[#18181b] z-10 flex items-center justify-between p-6 border-b border-[#27272a]">
+                            <h2 className="text-xl font-bold text-[#fafafa]">Add New Variant</h2>
+                            <button onClick={closeModal} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#71717a] hover:text-[#fafafa] hover:bg-[#27272a] transition-all cursor-pointer"><IconClose /></button>
+                        </div>
+
+                        <div className="p-6 flex flex-col gap-6">
+                            
+                            {/* Attributes */}
+                            <div>
+                                <label className="block text-[10px] font-mono uppercase tracking-widest text-[#71717a] mb-2">Attributes</label>
+                                <div className="flex flex-col gap-3">
+                                    {attributes.map((attr, idx) => (
+                                        <div key={idx} className="flex items-center gap-3">
+                                            <input className="flex-1 bg-[#09090b] border border-[#27272a] px-3 py-2.5 rounded-lg text-sm text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#f59e0b]/50 transition-colors" placeholder="e.g. Color" value={attr.key} onChange={e => handleAttrChange(idx, 'key', e.target.value)} />
+                                            <input className="flex-1 bg-[#09090b] border border-[#27272a] px-3 py-2.5 rounded-lg text-sm text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#f59e0b]/50 transition-colors" placeholder="e.g. Black" value={attr.value} onChange={e => handleAttrChange(idx, 'value', e.target.value)} />
+                                            {attributes.length > 1 && <button onClick={() => removeAttr(idx)} className="w-10 h-10 flex items-center justify-center border border-[#27272a] rounded-lg text-[#71717a] hover:text-[#f87171] hover:border-[#f87171]/40 hover:bg-[#f87171]/10 transition-colors cursor-pointer"><IconClose /></button>}
                                         </div>
                                     ))}
-                                    <button className="spd-add-attr" onClick={addAttr}>
+                                    <button onClick={addAttr} className="self-start text-[11px] font-mono flex items-center gap-1.5 text-[#a1a1aa] hover:text-[#f59e0b] border border-dashed border-[#3f3f46] hover:border-[#f59e0b] px-3 py-1.5 rounded-md transition-colors cursor-pointer">
                                         <IconPlus /> Add Attribute
                                     </button>
                                 </div>
+                            </div>
 
-                                {/* Price & Currency */}
-                                <div className="spd-field-group">
-                                    <label className="spd-label">Pricing</label>
-                                    <div className="spd-row">
-                                        <input
-                                            type="number"
-                                            className="spd-input"
-                                            placeholder="Amount"
-                                            min="0"
-                                            value={priceAmount}
-                                            onChange={e => setPriceAmount(e.target.value)}
-                                        />
-                                        <select
-                                            className="spd-select"
-                                            value={priceCurrency}
-                                            onChange={e => setPriceCurrency(e.target.value)}
-                                            style={{ flex: 0.5 }}
-                                        >
-                                            <option value="INR">INR ₹</option>
-                                            <option value="USD">USD $</option>
-                                            <option value="EUR">EUR €</option>
-                                            <option value="GBP">GBP £</option>
-                                            <option value="JPY">JPY ¥</option>
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Price */}
+                                <div>
+                                    <label className="block text-[10px] font-mono uppercase tracking-widest text-[#71717a] mb-2">Pricing</label>
+                                    <div className="flex gap-2">
+                                        <input type="number" min="0" placeholder="Amount" value={priceAmount} onChange={e => setPriceAmount(e.target.value)} className="flex-[2] bg-[#09090b] border border-[#27272a] px-3 py-2.5 rounded-lg text-sm text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#f59e0b]/50 transition-colors" />
+                                        <select value={priceCurrency} onChange={e => setPriceCurrency(e.target.value)} className="flex-1 bg-[#09090b] border border-[#27272a] px-3 py-2.5 rounded-lg text-sm text-[#fafafa] focus:outline-none focus:border-[#f59e0b]/50 appearance-none cursor-pointer text-center">
+                                            <option value="INR">INR</option>
+                                            <option value="USD">USD</option>
+                                            <option value="EUR">EUR</option>
+                                            <option value="GBP">GBP</option>
                                         </select>
                                     </div>
                                 </div>
 
                                 {/* Stock */}
-                                <div className="spd-field-group">
-                                    <label className="spd-label">Initial Stock</label>
-                                    <input
-                                        type="number"
-                                        className="spd-input"
-                                        placeholder="e.g. 25"
-                                        min="0"
-                                        value={stock}
-                                        onChange={e => setStock(e.target.value)}
-                                        style={{ maxWidth: 160 }}
-                                    />
-                                </div>
-
-                                {/* Images */}
-                                <div className="spd-field-group">
-                                    <label className="spd-label">Variant Images <span style={{ color: '#534434', fontWeight: 400 }}>(up to 5)</span></label>
-                                    <div
-                                        className={`spd-dropzone${isDragging ? ' dragging' : ''}`}
-                                        onClick={() => fileInputRef.current?.click()}
-                                        onDragOver={handleDragOver}
-                                        onDragLeave={handleDragLeave}
-                                        onDrop={handleDrop}
-                                    >
-                                        <div className="spd-dropzone-icon"><IconUpload /></div>
-                                        <p>Drop images here or <span style={{ color: '#f59e0b' }}>click to browse</span></p>
-                                        <span className="spd-dropzone-sub">PNG, JPG, WEBP · Max 5MB each</span>
-                                    </div>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        multiple
-                                        style={{ display: 'none' }}
-                                        onChange={handleFileChange}
-                                    />
-                                    {variantImages.length > 0 && (
-                                        <div className="spd-preview-grid">
-                                            {variantImages.map((img, idx) => (
-                                                <div key={idx} className="spd-preview-item">
-                                                    <img src={img.preview} alt="" />
-                                                    <button className="spd-preview-remove" onClick={() => removePreview(idx)}>✕</button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                <div>
+                                    <label className="block text-[10px] font-mono uppercase tracking-widest text-[#71717a] mb-2">Initial Stock</label>
+                                    <input type="number" min="0" placeholder="0" value={stock} onChange={e => setStock(e.target.value)} className="w-full bg-[#09090b] border border-[#27272a] px-3 py-2.5 rounded-lg text-sm text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#f59e0b]/50 transition-colors" />
                                 </div>
                             </div>
 
-                            <div className="spd-modal-footer">
-                                <button className="spd-btn-ghost" onClick={closeModal} disabled={modalLoading}>Cancel</button>
-                                <button className="spd-btn-primary" onClick={handleSubmitVariant} disabled={modalLoading}>
-                                    {modalLoading ? 'Creating…' : <><IconCheck /> Create Variant</>}
-                                </button>
+                            {/* Images */}
+                            <div>
+                                <label className="block text-[10px] font-mono uppercase tracking-widest text-[#71717a] mb-2">Images <span className="lowercase text-[#52525b]">(up to 5)</span></label>
+                                <div onClick={() => fileInputRef.current?.click()} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${isDragging ? 'border-[#f59e0b] bg-[#f59e0b]/5' : 'border-[#27272a] bg-[#09090b] hover:border-[#3f3f46]'}`}>
+                                    <div className="text-[#52525b] mb-2"><IconUpload /></div>
+                                    <p className="text-sm text-[#a1a1aa] mb-1">Drop images or <span className="text-[#f59e0b]">browse</span></p>
+                                    <p className="text-[10px] font-mono text-[#52525b]">PNG, JPG, WEBP</p>
+                                </div>
+                                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
+                                
+                                {variantImages.length > 0 && (
+                                    <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
+                                        {variantImages.map((img, idx) => (
+                                            <div key={idx} className="relative w-16 h-16 shrink-0 rounded-lg border border-[#27272a] overflow-hidden group">
+                                                <img src={img.preview} alt="" className="w-full h-full object-cover" />
+                                                <button onClick={() => removePreview(idx)} className="absolute inset-0 bg-black/60 text-[#f87171] opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-xs cursor-pointer">
+                                                    <IconClose />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    </div>
-                )}
 
-                {/* ── Toast ─────────────────────────────────────────── */}
-                {toast && (
-                    <div className={`spd-toast spd-toast-${toast.type}`}>
-                        {toast.type === 'success' ? <IconCheck /> : '⚠'}
-                        {toast.msg}
+                        <div className="p-6 border-t border-[#27272a] bg-[#09090b] rounded-b-2xl flex justify-end gap-3 sticky bottom-0">
+                            <button onClick={closeModal} disabled={modalLoading} className="px-5 py-2.5 rounded-xl border border-[#27272a] text-[#a1a1aa] text-sm font-bold hover:bg-[#27272a] hover:text-[#fafafa] transition-colors cursor-pointer">Cancel</button>
+                            <button onClick={handleSubmitVariant} disabled={modalLoading} className="px-5 py-2.5 rounded-xl bg-[#f59e0b] text-[#09090b] text-sm font-bold hover:bg-[#d97706] transition-colors flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50">
+                                {modalLoading ? 'Creating…' : <><IconCheck /> Create Variant</>}
+                            </button>
+                        </div>
                     </div>
-                )}
-            </div>
-        </>
+                </div>
+            )}
+
+            {/* Toast */}
+            {toast && (
+                <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-2 px-4 py-3 rounded-xl border shadow-xl text-sm font-semibold animate-slide-up ${toast.type === 'success' ? 'bg-[#10b981]/10 border-[#10b981]/20 text-[#10b981]' : 'bg-[#f87171]/10 border-[#f87171]/20 text-[#f87171]'}`}>
+                    {toast.type === 'success' ? <IconCheck /> : '⚠'} {toast.msg}
+                </div>
+            )}
+            <style>{`
+                @keyframes animate-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes animate-slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-fade-in { animation: animate-fade-in 0.2s ease-out forwards; }
+                .animate-slide-up { animation: animate-slide-up 0.3s ease-out forwards; }
+            `}</style>
+        </div>
     );
 };
 
