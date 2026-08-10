@@ -14,7 +14,7 @@ import { EmptyCartState } from '../../../components/ui/EmptyState';
 const Cart = () => {
     const cartItems = useSelector(state => state.cart.items);
 
-    const { handleGetCart, handleUpdateQuantity, handleRemoveItem, handleClearCart, handleCreateCartOrder } = useCart();
+    const { handleGetCart, handleUpdateQuantity, handleRemoveItem, handleClearCart, handleCreateCartOrder, handleVerifyCartOrder } = useCart();
     const { handleLogout } = useAuth();
     const navigate = useNavigate();
     const { error, isLoading, Razorpay } = useRazorpay();
@@ -93,9 +93,12 @@ const Cart = () => {
             name: 'Zentra',
             description: 'Test Transaction',
             order_id: order?.id,
-            handler: (response) => {
-                console.log(response);
-                alert('Payment Successful!');
+            handler: async (response) => {
+                const isvalid = await handleVerifyCartOrder(response)
+
+                if (isvalid) {
+                    navigate(`/order-success?order_id=${response.razorpay_order_id}`)
+                }
             },
             prefill: {
                 name: userName?.firstName ? `${userName.firstName} ${userName.lastName || ''}` : '',
