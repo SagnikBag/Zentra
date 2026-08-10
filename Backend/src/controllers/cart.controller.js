@@ -231,17 +231,17 @@ export const verifyOrderController = async(req,res)=>{
     },
     razorpay_signature,config.RAZORPAY_TEST_KEY_SECRET)
 
-    if(!ispaymentValid){
+    if(!isPaymentValid){
         payment.status = "failed"
         await payment.save()
 
-        return rews.status(400).json({
+        return res.status(400).json({
             message:" payment verification failed",
             success: false
         })
     }
 
-    payment.statsus = "paid"
+    payment.status = "paid"
 
     payment.razorpay.paymentId = razorpay_payment_id,
     payment.razorpay.signature = razorpay_signature
