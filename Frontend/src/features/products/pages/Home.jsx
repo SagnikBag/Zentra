@@ -131,7 +131,9 @@ const Home = () => {
         finally { setLoading(false); }
     };
 
-    useEffect(() => { fetchProducts(); }, []);
+    useEffect(() => {
+        fetchProducts();
+    }, []);
 
     const filteredProducts = useMemo(() => {
         let result = [...products];
