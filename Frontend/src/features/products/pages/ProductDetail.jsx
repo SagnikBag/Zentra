@@ -257,12 +257,12 @@ export default function ProductDetail() {
 
                             {/* Thumbnails */}
                             {allImages.length > 1 && (
-                                <div className="flex gap-2.5 overflow-x-auto pb-1">
+                                <div className="flex gap-2.5 flex-wrap">
                                     {allImages.map((img, idx) => (
                                         <button
                                             key={idx}
                                             onClick={() => setImgIdx(idx)}
-                                            className={`relative w-16 h-16 shrink-0 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${imgIdx === idx
+                                            className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${imgIdx === idx
                                                 ? 'border-[#f59e0b] shadow-[0_0_12px_rgba(245,158,11,0.3)]'
                                                 : 'border-[#27272a] opacity-60 hover:opacity-90 hover:border-[#3f3f46]'
                                                 }`}

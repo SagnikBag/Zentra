@@ -138,7 +138,10 @@ export async function getProductDetails(req,res){
 
 export async function addVariant(req, res) {
 
-    const productId = req.params.productId;
+    console.log("PRODUCT ID:", req.params.id);
+console.log("AUTH SELLER ID:", req.user._id);
+
+    const productId = req.params.id;
 
     const product = await productModel.findOne({
         _id: productId,
@@ -154,7 +157,7 @@ export async function addVariant(req, res) {
 
     const files = req.files;
     const images = [];
-    if (files || files.length !== 0) {
+    if (files && files.length !== 0) {
         (await Promise.all(files.map(async (file) => {
             const image = await uploadFile({
                 buffer: file.buffer,
