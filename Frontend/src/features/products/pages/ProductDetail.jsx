@@ -91,26 +91,75 @@ export default function ProductDetail() {
     const DEFAULT_FALLBACK = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800';
 
     /* All images gallery — unchanged */
-    const allImages = useMemo(() => {
-        const list = [];
-        if (product?.images?.length) {
-            product.images.forEach((img, i) => {
-                const url = getUrl(img);
-                if (url) list.push({ url, label: `Image ${i + 1}`, isVariant: false, variantId: null });
-            });
-        }
-        variants.forEach(v => {
-            if (v.images?.length) {
-                v.images.forEach(img => {
-                    const url = getUrl(img);
-                    if (url) list.push({ url, label: getVariantLabel(v), isVariant: true, variantId: v._id });
-                });
-            }
-        });
-        if (list.length === 0) list.push({ url: DEFAULT_FALLBACK, label: 'Product View', isVariant: false, variantId: null });
-        return list;
-    }, [product, variants]);
+    // const allImages = useMemo(() => {
+    //     const list = [];
+    //     if (product?.images?.length) {
+    //         product.images.forEach((img, i) => {
+    //             const url = getUrl(img);
+    //             if (url) list.push({ url, label: `Image ${i + 1}`, isVariant: false, variantId: null });
+    //         });
+    //     }
+    //     variants.forEach(v => {
+    //         if (v.images?.length) {
+    //             v.images.forEach(img => {
+    //                 const url = getUrl(img);
+    //                 if (url) list.push({ url, label: getVariantLabel(v), isVariant: true, variantId: v._id });
+    //             });
+    //         }
+    //     });
+    //     if (list.length === 0) list.push({ url: DEFAULT_FALLBACK, label: 'Product View', isVariant: false, variantId: null });
+    //     return list;
+    // }, [product, variants]);
 
+    const allImages = useMemo(() => {
+        // If a variant is selected, show only that variant's images
+        if (selectedVariant) {
+            const variantImages = selectedVariant.images
+                ?.map(img => {
+                    const url = getUrl(img);
+                    return url
+                        ? {
+                            url,
+                            label: getVariantLabel(selectedVariant),
+                            isVariant: true,
+                            variantId: selectedVariant._id
+                        }
+                        : null;
+                })
+                .filter(Boolean);
+
+            if (variantImages?.length) {
+                return variantImages;
+            }
+        }
+
+        // No variant selected → show base product images
+        const productImages = product?.images
+            ?.map((img, i) => {
+                const url = getUrl(img);
+
+                return url
+                    ? {
+                        url,
+                        label: `Image ${i + 1}`,
+                        isVariant: false,
+                        variantId: null
+                    }
+                    : null;
+            })
+            .filter(Boolean);
+
+        return productImages?.length
+            ? productImages
+            : [
+                {
+                    url: DEFAULT_FALLBACK,
+                    label: 'Product View',
+                    isVariant: false,
+                    variantId: null
+                }
+            ];
+    }, [product, selectedVariant]);
     const activeImageObj = allImages[imgIdx] || allImages[0];
 
     /* Effective price & stock — unchanged */
@@ -126,16 +175,20 @@ export default function ProductDetail() {
     }, [selectedVariant, variants]);
 
     /* Select variant handler — unchanged */
+    // const handleSelectVariant = (variantObj) => {
+    //     setSelectedVariant(variantObj);
+    //     if (variantObj) {
+    //         const idx = allImages.findIndex(img => img.variantId === variantObj._id);
+    //         if (idx !== -1) setImgIdx(idx);
+    //     } else {
+    //         setImgIdx(0);
+    //     }
+    // };
+
     const handleSelectVariant = (variantObj) => {
         setSelectedVariant(variantObj);
-        if (variantObj) {
-            const idx = allImages.findIndex(img => img.variantId === variantObj._id);
-            if (idx !== -1) setImgIdx(idx);
-        } else {
-            setImgIdx(0);
-        }
+        setImgIdx(0);
     };
-
     /* Add to cart handler — unchanged */
     const handleAddToCartClick = async () => {
         if (!product) return;

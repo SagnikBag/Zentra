@@ -77,11 +77,20 @@ export const addToCart = async(req,res)=>{
         })
     }
 
+    const variant = product.variants.id(variantId);
+
+if (!variant) {
+    return res.status(404).json({
+        message: "Variant not found",
+        success: false
+    });
+}
+
     cart.items.push({
         product: productId,
         variants: variantId,
         quantity,
-        price:product.price
+        price:variant.price
     })
 
     await cart.save()
