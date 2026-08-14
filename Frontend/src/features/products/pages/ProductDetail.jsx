@@ -33,6 +33,10 @@ export default function ProductDetail() {
     const [detailOpen, setDetailOpen] = useState(true);
     const [addingToCart, setAddingToCart] = useState(false);
 
+    /* Myntra-style variant state */
+    const [selectedAttributes, setSelectedAttributes] = useState({});
+    const [expandedAttributes, setExpandedAttributes] = useState({});
+
     /* Image helper — unchanged */
     const getUrl = img => {
         if (!img) return null;
