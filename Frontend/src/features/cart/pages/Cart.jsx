@@ -191,18 +191,35 @@ const Cart = () => {
                                     : typeof item.productId === 'object' && item.productId !== null
                                         ? item.productId : {};
 
-                                const variantIdStr = item.variants?._id || item.variants || item.variant?._id || item.variant || item.variantId;
-                                const variantObj = Array.isArray(product.variants)
-                                    ? product.variants.find(v => String(v._id) === String(variantIdStr))
+                                const variantIdStr = item.variants?._id
+                                    || item.variants
+                                    || item.variant?._id
+                                    || item.variant
+                                    || item.variantId;
+                                // const variantObj = Array.isArray(product.variants)
+                                //     ? product.variants.find(v => String(v._id) === String(variantIdStr))
+                                //     : null;
+                                const variantObj = product.variants || null;
+                                const variantLabel = variantObj?.attributes
+                                    ? Object.entries(variantObj.attributes)
+                                        .map(([key, value]) => `${key}: ${value}`)
+                                        .join(" · ")
                                     : null;
 
-                                const itemPrice = item.price?.amount ?? variantObj?.price?.amount ?? product.price?.amount ?? 0;
+                                // const itemPrice = item.price?.amount ?? variantObj?.price?.amount ?? product.price?.amount ?? 0;
+                                const itemPrice = variantObj?.price?.amount ?? item.price?.amount ?? product.price?.amount ?? 0;
                                 const currency = item.price?.currency || variantObj?.price?.currency || product.price?.currency || 'INR';
 
                                 const imageUrl = variantObj?.images?.[0]?.url || product.images?.[0]?.url ||
                                     'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=60';
 
                                 const itemSubtotal = itemPrice * (item.quantity || 1);
+
+                                console.log("CART ITEM:", item);
+                                console.log("PRODUCT:", product);
+                                console.log("PRODUCT VARIANTS:", product.variants);
+                                console.log("VARIANT ID:", variantIdStr);
+                                console.log("VARIANT OBJECT:", variantObj);
 
                                 return (
                                     <div
@@ -225,10 +242,15 @@ const Cart = () => {
                                                     <h3 className="font-semibold text-sm text-[#fafafa] line-clamp-1 group-hover:text-[#f59e0b] transition-colors duration-200">
                                                         {product.title || 'Untitled Product'}
                                                     </h3>
-                                                    {variantObj && (
+                                                    {/* {variantObj && (
                                                         <span className="inline-flex items-center text-[10px] font-mono text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2 py-0.5 rounded-md mt-1">
                                                             Variant
                                                         </span>
+                                                    )} */}
+                                                    {variantLabel && (
+                                                        <p className="text-sm text-gray-400">
+                                                            {variantLabel}
+                                                        </p>
                                                     )}
                                                     <p className="text-xs text-[#71717a] line-clamp-1 mt-0.5">
                                                         {product.description || ''}
