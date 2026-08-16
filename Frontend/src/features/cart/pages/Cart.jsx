@@ -66,7 +66,7 @@ const Cart = () => {
         const code = promoCode.trim().toUpperCase();
         if (code === 'ZENTRA10') {
             setAppliedDiscount(10);
-            setPromoMessage({ type: 'success', text: '10% Zentra discount applie!' });
+            setPromoMessage({ type: 'success', text: '10% Zentra discount applied !' });
         } else if (code === 'ZENTRA20') {
             setAppliedDiscount(20);
             setPromoMessage({ type: 'success', text: '20% VIP discount applied!' });
