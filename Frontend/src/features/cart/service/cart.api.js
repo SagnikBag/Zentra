@@ -5,10 +5,17 @@ const cartApiInstance = axios.create({
     withCredentials: true
 })
 
-export const addItem = async ({ productId, variantsId, quantity }) => {
-    const response = await cartApiInstance.post(`/add/${productId}/${variantsId}`, {
+export const addItem = async ({ productId, variantId, quantity }) => {
+
+    console.log("ADD ITEM:", {
+        productId,
+        variantId,
+        quantity
+    });
+    const response = await cartApiInstance.post(`/add/${productId}/${variantId}`, {
         quantity: quantity || 1
     })
+
 
     console.log(response);
 

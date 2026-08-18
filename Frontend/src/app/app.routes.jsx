@@ -1,66 +1,84 @@
 import { createBrowserRouter } from "react-router";
-import { Register } from "../features/auth/pages/Register"
+
+import { Register } from "../features/auth/pages/Register";
 import { Login } from "../features/auth/pages/Login";
+
 import { CreateProduct } from "../features/products/pages/CreateProduct";
 import { Dashboard } from "../features/products/pages/Dashboard";
-import Protected from "../features/auth/components/Protected";
 import Home from "../features/products/pages/Home";
 import ProductDetail from "../features/products/pages/ProductDetail";
 import SellerProductDetails from "../features/products/pages/SellerProductDetails";
+
 import Cart from "../features/cart/pages/Cart";
+
+import Protected from "../features/auth/components/Protected";
 import AppLayout from "./AppLayout";
 
 export const routes = createBrowserRouter([
-
     {
-        path: '/register',
+        path: "/register",
         element: <Register />
     },
+
     {
-        path: '/login',
+        path: "/login",
         element: <Login />
     },
+
     {
         element: <AppLayout />,
         children: [
+            // =========================
+            // PUBLIC ROUTES
+            // =========================
+
             {
-                path: '/',
+                path: "/",
                 element: <Home />
             },
+
             {
-                path: '/product/:productId',
+                path: "/product/:productId",
                 element: <ProductDetail />
             },
+
+            // =========================
+            // AUTHENTICATED ROUTES
+            // =========================
+
             {
-                path: '/cart',
-                element: <Cart />
-            },
-            {
-                path: '/seller',
+                element: <Protected />,
                 children: [
                     {
-                        path: '/seller/create-product',
-                        element:
-                            // <Protected role="seller">
-                            <CreateProduct />
-                        // </Protected>
-                    },
+                        path: "/cart",
+                        element: <Cart />
+                    }
+                ]
+            },
+
+            // =========================
+            // SELLER ONLY ROUTES
+            // =========================
+
+            {
+                element: <Protected role="seller" />,
+                children: [
                     {
-                        path: '/seller/dashboard',
-                        element:
-                            // <Protected role="seller">
-                            <Dashboard />
-                        // </Protected>
+                        path: "/seller/create-product",
+                        element: <CreateProduct />
                     },
+
                     {
-                        path: '/seller/product/:productId',
-                        element:
-                            // <Protected role="seller">
-                            <SellerProductDetails />
-                        // </Protected>
+                        path: "/seller/dashboard",
+                        element: <Dashboard />
+                    },
+
+                    {
+                        path: "/seller/product/:productId",
+                        element: <SellerProductDetails />
                     }
                 ]
             }
         ]
     }
-])
+]);

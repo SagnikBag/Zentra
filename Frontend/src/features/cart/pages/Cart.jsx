@@ -196,6 +196,9 @@ const Cart = () => {
                                     || item.variant?._id
                                     || item.variant
                                     || item.variantId;
+
+                                console.log("cartitems", cartItems);
+
                                 // const variantObj = Array.isArray(product.variants)
                                 //     ? product.variants.find(v => String(v._id) === String(variantIdStr))
                                 //     : null;

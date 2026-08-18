@@ -191,12 +191,15 @@ export default function ProductDetail() {
     };
     /* Add to cart handler — unchanged */
     const handleAddToCartClick = async () => {
+
+        console.log("🔥 ADD TO CART CLICKED");
         if (!product) return;
         const targetVariantId = selectedVariant?._id || (variants.length > 0 ? variants[0]._id : null);
         if (variants.length > 0 && !targetVariantId) { showToast('Please select a product variant'); return; }
         setAddingToCart(true);
         try {
-            await handleAddItem({ productId: product._id, variantsId: targetVariantId, quantity: qty });
+            console.log("🔥 CALLING handleAddItem");
+            await handleAddItem({ productId: product._id, variantId: targetVariantId, quantity: qty });
             const label = selectedVariant ? getVariantLabel(selectedVariant) : 'Base Product';
             showToast(`Added ${qty} × "${product.title}" to cart!`);
         } catch (err) {
@@ -205,8 +208,48 @@ export default function ProductDetail() {
         } finally {
             setAddingToCart(false);
         }
+
+
     };
 
+
+    // const handleAddToCartClick = async () => {
+    //     if (!product) return;
+
+    //     const targetVariantId =
+    //         selectedVariant?._id ||
+    //         (variants.length > 0 ? variants[0]._id : null);
+
+    //     if (variants.length > 0 && !targetVariantId) {
+    //         showToast("Please select a product variant");
+    //         return;
+    //     }
+
+    //     console.log("🔥 ADD TO CART");
+    //     console.log("Product ID:", product._id);
+    //     console.log("Selected Variant:", selectedVariant);
+    //     console.log("Variant ID:", targetVariantId);
+    //     console.log("Quantity:", qty);
+
+    //     setAddingToCart(true);
+
+    //     try {
+    //         await handleAddItem({
+    //             productId: product._id,
+    //             variantId: targetVariantId,
+    //             quantity: qty
+    //         });
+
+    //         showToast(`Added ${qty} × "${product.title}" to cart!`);
+
+    //     } catch (err) {
+    //         console.error("Failed to add item to cart:", err);
+    //         showToast("Failed to add product to cart");
+
+    //     } finally {
+    //         setAddingToCart(false);
+    //     }
+    // };
     /* Delivery check — unchanged */
     const checkDelivery = () => {
         if (/^\d{6}$/.test(pincode)) {
@@ -491,8 +534,10 @@ export default function ProductDetail() {
                             {/* CTA Buttons */}
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <button
+                                    type="button"
                                     onClick={handleAddToCartClick}
                                     disabled={addingToCart || effectiveStock === 0}
+
                                     className="flex-1 flex items-center justify-center gap-2.5 bg-[#f59e0b] text-[#09090b] font-bold text-sm py-4 rounded-xl hover:bg-[#d97706] transition-all duration-200 shadow-[0_8px_24px_rgba(245,158,11,0.25)] hover:shadow-[0_8px_32px_rgba(245,158,11,0.4)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 >
                                     {addingToCart ? (
@@ -507,7 +552,11 @@ export default function ProductDetail() {
                                     )}
                                 </button>
                                 <button
-                                    onClick={async () => { await handleAddToCartClick(); navigate('/cart'); }}
+                                    type="button"
+                                    onClick={async () => {
+                                        await handleAddToCartClick();
+                                        navigate('/cart');
+                                    }}
                                     disabled={effectiveStock === 0}
                                     className="flex-1 flex items-center justify-center gap-2.5 bg-[#18181b] text-[#f59e0b] font-bold text-sm py-4 rounded-xl border border-[#f59e0b]/30 hover:border-[#f59e0b] hover:bg-[#27272a] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 >

@@ -5,8 +5,8 @@ import { setItems, updateQuantity, removeItem, clearCart, incrementCartItem } fr
 export const useCart = () => {
     const dispatch = useDispatch();
 
-    async function handleAddItem({ productId, variantsId, quantity }) {
-        const data = await addItem({ productId, variantsId, quantity });
+    async function handleAddItem({ productId, variantId, quantity }) {
+        const data = await addItem({ productId, variantId, quantity });
         return data;
     }
 

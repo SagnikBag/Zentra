@@ -9,97 +9,241 @@ import {validatePaymentVerification} from "razorpay/dist/utils/razorpay-utils.js
 
 
 
-export const addToCart = async(req,res)=>{
+// export const addToCart = async(req,res)=>{
 
-      console.log(req.params);
+//     console.log("========== ADD TO CART ==========");
 
-    const {productId,variantId} = req.params;
-    const {quantity = 1} = req.body;
+//         console.log("REQ PARAMS:", req.params);
+//         console.log("REQ BODY:", req.body);
 
-   
+
+//     const {productId,variantId} = req.params;
+//     const {quantity = 1} = req.body;
+
     
+//         console.log("PRODUCT ID:", productId);
+//         console.log("VARIANT ID:", variantId);
+//         console.log("QUANTITY:", quantity);
 
-    const product = await productModel.findOne({
-        _id:productId,
-        "variants._id" : variantId
-       
+//    const product = await productModel.findOne({
+//         _id:productId,
+//         "variants._id" : variantId
+//     })
 
+//     console.log("PRODUCT FOUND:", product);
+//      if(!product){
+//         return res.status(404).json({
+//             message:"product or variant not found",
+//             success:false
+//         })
+//     }
 
-    })
-     
+//     const stock = await stockVariant(productId,variantId)
 
-    if(!product){
-        return res.status(404).json({
-            message:"product or variant not found",
-            success:false
-        })
-    }
+//     const cart = (await cartModel.findOne({user: req.user._id})) || (await cartModel.create(
+//         {user:req.user._id, items: []}
+//     ))
 
-    const stock = await stockVariant(productId,variantId)
+//     const isProductAlreadyCart = cart.items.some(item => item.product.toString() === productId && 
+//     (item.variants?.toString() === variantId || item.variant?.toString() === variantId))
 
-    const cart = (await cartModel.findOne({user: req.user._id})) || (await cartModel.create(
-        {user:req.user._id, items: []}
-    ))
-
-
-    const isProductAlreadyCart = cart.items.some(item => item.product.toString() === productId && 
-    (item.variants?.toString() === variantId || item.variant?.toString() === variantId))
-
-    if(isProductAlreadyCart){
-         const cartItem = cart.items.find(item => item.product.toString() === productId && (item.variants?.toString() === variantId || item.variant?.toString() === variantId))
-         const quantityInCart = cartItem ? cartItem.quantity : 0
+//     if(isProductAlreadyCart){
+//          const cartItem = cart.items.find(item => item.product.toString() === productId && (item.variants?.toString() === variantId || item.variant?.toString() === variantId))
+//          const quantityInCart = cartItem ? cartItem.quantity : 0
     
-          if (quantityInCart + quantity > stock) {
+//           if (quantityInCart + quantity > stock) {
+//             return res.status(400).json({
+//                 message: `Only ${stock} items left in stock. and you already have ${quantityInCart} items in your cart`,
+//                 success: false
+//             })
+//         }
+//         await cartModel.findOneAndUpdate(
+//             {
+//                 user: req.user._id,
+//                 "items.product": productId,
+//                 $or: [{ "items.variants": variantId }, { "items.variant": variantId }]
+//             },
+//             {$inc:{"items.$.quantity":quantity}},
+//             {new:true}
+//         )
+
+//         return res.status(200).json({
+//             message:"cart updated successfully",
+//             success: true
+//         })
+//     }
+//     if(quantity> stock){
+//         return res.status(400).json({
+//             message:`Only ${stock} items left in stock`,
+//             success: false
+//         })
+//     }
+
+//     const variant = product.variants.id(variantId);
+
+// if (!variant) {
+//     return res.status(404).json({
+//         message: "Variant not found",
+//         success: false
+//     });
+// }
+
+//     cart.items.push({
+//         product: productId,
+//         variants: variantId,
+//         quantity,
+//         price:variant.price
+//     })
+
+//     await cart.save()
+
+//     return res.status(200).json({
+//         message:"Product added successfully",
+//         success:true
+//     })
+// }
+
+export const addToCart = async (req, res) => {
+    try {
+        console.log("========== ADD TO CART ==========");
+
+        console.log("REQ PARAMS:", req.params);
+        console.log("REQ BODY:", req.body);
+
+        const { productId, variantId } = req.params;
+        const { quantity = 1 } = req.body;
+
+        console.log("PRODUCT ID:", productId);
+        console.log("VARIANT ID:", variantId);
+        console.log("QUANTITY:", quantity);
+
+        // 1. Validate quantity
+        if (!Number.isInteger(quantity) || quantity < 1) {
             return res.status(400).json({
-                message: `Only ${stock} items left in stock. and you already have ${quantityInCart} items in your cart`,
+                message: "Quantity must be at least 1",
                 success: false
-            })
+            });
         }
-        await cartModel.findOneAndUpdate(
-            {
+
+        // 2. Find product containing this variant
+        const product = await productModel.findOne({
+            _id: productId,
+            "variants._id": variantId
+        });
+
+        console.log("PRODUCT FOUND:", product);
+
+        if (!product) {
+            return res.status(404).json({
+                message: "Product or variant not found",
+                success: false
+            });
+        }
+
+        // 3. Find the exact variant
+        const variant = product.variants.id(variantId);
+
+        console.log("VARIANT FOUND:", variant);
+
+        if (!variant) {
+            return res.status(404).json({
+                message: "Variant not found",
+                success: false
+            });
+        }
+
+        // 4. Get stock directly from the variant
+        const stock = variant.stock;
+
+        console.log("VARIANT STOCK:", stock);
+        console.log("REQUESTED QUANTITY:", quantity);
+
+        // 5. Get existing cart or create one
+        const cart =
+            (await cartModel.findOne({ user: req.user._id })) ||
+            (await cartModel.create({
                 user: req.user._id,
-                "items.product": productId,
-                $or: [{ "items.variants": variantId }, { "items.variant": variantId }]
-            },
-            {$inc:{"items.$.quantity":quantity}},
-            {new:true}
-        )
+                items: []
+            }));
+
+        // 6. Find existing cart item
+        const cartItem = cart.items.find(
+            item =>
+                item.product.toString() === productId &&
+                (
+                    item.variants?.toString() === variantId ||
+                    item.variant?.toString() === variantId
+                )
+        );
+
+        // 7. Existing item
+        if (cartItem) {
+            const quantityInCart = cartItem.quantity;
+            const newQuantity = quantityInCart + quantity;
+
+            console.log("QUANTITY IN CART:", quantityInCart);
+            console.log("NEW QUANTITY:", newQuantity);
+
+            // Never allow cart quantity > stock
+            if (newQuantity > stock) {
+                return res.status(400).json({
+                    message: `Only ${stock} items left in stock. You already have ${quantityInCart} in your cart.`,
+                    success: false
+                });
+            }
+
+            cartItem.quantity = newQuantity;
+
+            // Make sure price is the variant price
+            cartItem.price = {
+                amount: variant.price.amount,
+                currency: variant.price.currency
+            };
+
+            await cart.save();
+
+            return res.status(200).json({
+                message: "Cart updated successfully",
+                success: true
+            });
+        }
+
+        // 8. New item
+        if (quantity > stock) {
+            return res.status(400).json({
+                message: `Only ${stock} items left in stock`,
+                success: false
+            });
+        }
+
+        // 9. Add new item
+        cart.items.push({
+            product: productId,
+            variants: variantId,
+            quantity,
+            price: {
+                amount: variant.price.amount,
+                currency: variant.price.currency
+            }
+        });
+
+        await cart.save();
 
         return res.status(200).json({
-            message:"cart updated successfully",
+            message: "Product added successfully",
             success: true
-        })
+        });
+
+    } catch (error) {
+        console.error("ADD TO CART ERROR:", error);
+
+        return res.status(500).json({
+            message: "Failed to add product to cart",
+            success: false,
+            error: error.message
+        });
     }
-    if(quantity> stock){
-        return res.status(400).json({
-            message:`Only ${stock} items left in stock`,
-            success: false
-        })
-    }
-
-    const variant = product.variants.id(variantId);
-
-if (!variant) {
-    return res.status(404).json({
-        message: "Variant not found",
-        success: false
-    });
-}
-
-    cart.items.push({
-        product: productId,
-        variants: variantId,
-        quantity,
-        price:variant.price
-    })
-
-    await cart.save()
-
-    return res.status(200).json({
-        message:"Product added successfully",
-        success:true
-    })
-}
+};
 export const getCart = async(req,res)=>{
 
     const user = req.user
@@ -119,6 +263,12 @@ export const getCart = async(req,res)=>{
 }
 export const incrementCartItemQuantity = async(req,res)=>{
     const {productId,variantId} = req.params
+
+    console.log("🔥 PRODUCT ID:", productId);
+console.log("🔥 VARIANT ID:", variantId);
+console.log("🔥 STOCK:", stock);
+console.log("🔥 CART QUANTITY:", itemQuantityInCart);
+console.log("🔥 NEXT QUANTITY:", itemQuantityInCart + 1);
 
     const product = await productModel.findOne({
         _id: productId,
