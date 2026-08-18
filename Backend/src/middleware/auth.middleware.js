@@ -31,6 +31,11 @@ export const authenticateUser = async (req,res,next)=>{
 export const authenticateSeller = async (req,res,next)=>{
     const token = req.cookies.token
 
+      console.log("========== AUTH CHECK ==========");
+    console.log("Token exists:", !!token);
+    console.log("Token:", token);
+
+
     if(!token){
         return res.status(401).json({message :"Unauthorized"})
     }
@@ -46,9 +51,7 @@ export const authenticateSeller = async (req,res,next)=>{
         if(user.role !== "seller"){
             return res.status(403).json({message: "Forbidden"})
         }
-        console.log("AUTH USER:", req.user);
-console.log("USER ROLE:", req.user?.role);
-console.log("REQUIRED ROLE:", role);
+   
 
         req.user = user
         next()

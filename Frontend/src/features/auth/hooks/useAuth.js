@@ -19,9 +19,10 @@ export const useAuth = () => {
 
       const data = await login({ email, password })
 
-      dispatch(setUser(data))
+      dispatch(setUser(data.user))
 
       return data.user
+         ;
 
    }
    async function handleGetme() {
