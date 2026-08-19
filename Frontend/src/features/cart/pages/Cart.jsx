@@ -199,15 +199,28 @@ const Cart = () => {
 
                                 console.log("cartitems", cartItems);
 
-                                // const variantObj = Array.isArray(product.variants)
-                                //     ? product.variants.find(v => String(v._id) === String(variantIdStr))
-                                //     : null;
-                                const variantObj = product.variants || null;
+                                const variantObj = Array.isArray(product.variants)
+                                    ? product.variants.find(v => String(v._id) === String(variantIdStr))
+                                    : null;
+
+                                console.log("========== CART ITEM ==========");
+                                console.log("PRODUCT ID:", item.product?._id);
+                                console.log("CART VARIANT ID:", variantIdStr);
+                                console.log("SELECTED VARIANT OBJECT:", variantObj);
+                                console.log("================================");
+                                // const variantObj = product.variants || null;
+
+
                                 const variantLabel = variantObj?.attributes
                                     ? Object.entries(variantObj.attributes)
                                         .map(([key, value]) => `${key}: ${value}`)
                                         .join(" · ")
                                     : null;
+                                // const variantLabel = variantObj?.attributes
+                                //     ? Object.entries(variantObj.attributes)
+                                //         .map(([key, value]) => `${key}: ${value}`)
+                                //         .join(" · ")
+                                //     : null;
 
                                 // const itemPrice = item.price?.amount ?? variantObj?.price?.amount ?? product.price?.amount ?? 0;
                                 const itemPrice = variantObj?.price?.amount ?? item.price?.amount ?? product.price?.amount ?? 0;

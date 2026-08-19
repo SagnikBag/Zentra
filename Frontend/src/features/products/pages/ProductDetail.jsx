@@ -187,30 +187,39 @@ export default function ProductDetail() {
 
     const handleSelectVariant = (variantObj) => {
         setSelectedVariant(variantObj);
+        console.log("SELECTED VARIANT ID:",
+            variantObj?._id || "BASE PRODUCT");
+        console.log("SELECTED VARIANT:", variantObj);
+
         setImgIdx(0);
     };
     /* Add to cart handler — unchanged */
-    const handleAddToCartClick = async () => {
+    // const handleAddToCartClick = async () => {
 
-        console.log("🔥 ADD TO CART CLICKED");
-        if (!product) return;
-        const targetVariantId = selectedVariant?._id || (variants.length > 0 ? variants[0]._id : null);
-        if (variants.length > 0 && !targetVariantId) { showToast('Please select a product variant'); return; }
-        setAddingToCart(true);
-        try {
-            console.log("🔥 CALLING handleAddItem");
-            await handleAddItem({ productId: product._id, variantId: targetVariantId, quantity: qty });
-            const label = selectedVariant ? getVariantLabel(selectedVariant) : 'Base Product';
-            showToast(`Added ${qty} × "${product.title}" to cart!`);
-        } catch (err) {
-            console.error('Failed to add item to cart:', err);
-            showToast('Failed to add product to cart');
-        } finally {
-            setAddingToCart(false);
-        }
+    //     console.log("🔥 ADD TO CART CLICKED");
+    //     if (!product) return;
+    //     // const targetVariantId = selectedVariant?._id || (variants.length > 0 ? variants[0]._id : null);
+    //     const targetVariantId = selectedVariant?._id || null;
+    //     console.log("========== ADD TO CART ==========");
+    //     console.log("Product ID:", product._id);
+    //     console.log("Selected Variant:", selectedVariant);
+    //     console.log("Selected Variant ID:", selectedVariant?._id);
+    //     console.log("Target Variant ID:", targetVariantId);
+    //     setAddingToCart(true);
+    //     try {
+    //         console.log("🔥 CALLING handleAddItem");
+    //         await handleAddItem({ productId: product._id, variantId: targetVariantId, quantity: qty });
+    //         const label = selectedVariant ? getVariantLabel(selectedVariant) : 'Base Product';
+    //         showToast(`Added ${qty} × "${product.title}" to cart!`);
+    //     } catch (err) {
+    //         console.error('Failed to add item to cart:', err);
+    //         showToast('Failed to add product to cart');
+    //     } finally {
+    //         setAddingToCart(false);
+    //     }
 
 
-    };
+    // };
 
 
     // const handleAddToCartClick = async () => {
@@ -251,6 +260,53 @@ export default function ProductDetail() {
     //     }
     // };
     /* Delivery check — unchanged */
+
+    const handleAddToCartClick = async () => {
+        if (!product) return;
+
+        console.log("🔥 ADD TO CART CLICKED");
+        console.log("========== ADD TO CART ==========");
+        console.log("Product ID:", product._id);
+        console.log("Selected Variant:", selectedVariant);
+
+        // Product has variants → variant MUST be selected
+        if (variants.length > 0 && !selectedVariant) {
+            console.log("❌ NO VARIANT SELECTED");
+
+            showToast("Please select a variant");
+            return;
+        }
+
+        const targetVariantId = selectedVariant?._id;
+
+        console.log("Selected Variant ID:", targetVariantId);
+
+        if (variants.length > 0 && !targetVariantId) {
+            console.log("❌ VARIANT ID IS MISSING");
+
+            showToast("Please select a variant");
+            return;
+        }
+
+        console.log("Target Variant ID:", targetVariantId);
+
+        try {
+            setAddingToCart(true);
+
+            console.log("🔥 CALLING handleAddItem");
+
+            await handleAddItem({
+                productId: product._id,
+                variantId: targetVariantId,
+                quantity: 1
+            });
+
+        } catch (error) {
+            console.error("Failed to add item to cart:", error);
+        } finally {
+            setAddingToCart(false);
+        }
+    };
     const checkDelivery = () => {
         if (/^\d{6}$/.test(pincode)) {
             const d = new Date(Date.now() + 2 * 86400000);
@@ -260,6 +316,12 @@ export default function ProductDetail() {
         }
     };
 
+
+    console.log("🔥 ALL PRODUCT VARIANTS:", variants);
+    console.log(
+        "🔥 VARIANT IDs:",
+        variants.map(v => v._id)
+    );
     /* ── Render ─────────────────────────────────────────── */
     return (
         <div className="min-h-screen bg-[#09090b] text-[#fafafa]">
@@ -433,8 +495,11 @@ export default function ProductDetail() {
                                         </label>
                                         {selectedVariant && (
                                             <button
-                                                onClick={() => handleSelectVariant(null)}
+                                                onClick={() => handleSelectVariant(null)
+
+                                                }
                                                 className="text-[11px] text-[#f59e0b] hover:underline cursor-pointer font-mono"
+
                                             >
                                                 Reset
                                             </button>
@@ -444,7 +509,10 @@ export default function ProductDetail() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                         {/* Base option */}
                                         <div
-                                            onClick={() => handleSelectVariant(null)}
+                                            onClick={() => {
+                                                console.log("🔥 BASE MODEL CLICKED");
+                                                handleSelectVariant(null);
+                                            }}
                                             className={`p-3.5 rounded-xl border cursor-pointer flex items-center gap-3 transition-all duration-200 ${selectedVariant === null
                                                 ? 'bg-[#f59e0b]/8 border-[#f59e0b] shadow-[0_0_0_1px_rgba(245,158,11,0.2)]'
                                                 : 'bg-[#18181b] border-[#27272a] hover:border-[#3f3f46]'
@@ -476,7 +544,10 @@ export default function ProductDetail() {
                                             return (
                                                 <div
                                                     key={v._id || i}
-                                                    onClick={() => handleSelectVariant(v)}
+                                                    onClick={() => {
+                                                        console.log("🔥 VARIANT CLICKED:", v._id);
+                                                        handleSelectVariant(v);
+                                                    }}
                                                     className={`p-3.5 rounded-xl border cursor-pointer flex items-center gap-3 transition-all duration-200 ${isSelected
                                                         ? 'bg-[#f59e0b]/8 border-[#f59e0b] shadow-[0_0_0_1px_rgba(245,158,11,0.2)]'
                                                         : v.stock === 0

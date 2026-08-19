@@ -12,6 +12,7 @@ export function CreateProduct() {
         description: "",
         priceAmount: "",
         priceCurrency: "USD",
+        stock: "",
     });
     const [images, setImages] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
@@ -81,6 +82,9 @@ export function CreateProduct() {
             submitData.append("description", formData.description);
             submitData.append("priceAmount", formData.priceAmount);
             submitData.append("priceCurrency", formData.priceCurrency);
+            if (formData.stock !== "") {
+                submitData.append("stock", formData.stock);
+            }
             images.forEach((img) => {
                 submitData.append("images", img.file);
             });
@@ -169,8 +173,8 @@ export function CreateProduct() {
                                 />
                             </div>
 
-                            {/* Price */}
-                            <div className="grid grid-cols-2 gap-4">
+                            {/* Price & Stock */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
                                     <label htmlFor="priceAmount" className="block text-xs font-mono uppercase tracking-widest text-[#a1a1aa] mb-2">Price Amount <span className="text-[#f87171]">*</span></label>
                                     <input
@@ -207,6 +211,21 @@ export function CreateProduct() {
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                                         </div>
                                     </div>
+                                </div>
+                                <div>
+                                    <label htmlFor="stock" className="block text-xs font-mono uppercase tracking-widest text-[#a1a1aa] mb-2">Stock Quantity</label>
+                                    <input
+                                        id="stock"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        value={formData.stock}
+                                        onChange={handleChange}
+                                        onFocus={() => setFocusedField('stock')}
+                                        onBlur={() => setFocusedField(null)}
+                                        placeholder="E.g. 10"
+                                        className={`w-full bg-[#09090b] border px-4 py-3 rounded-xl text-sm text-[#fafafa] placeholder-[#52525b] outline-none transition-all ${focusedField === 'stock' ? 'border-[#f59e0b] shadow-[0_0_0_1px_rgba(245,158,11,0.2)]' : 'border-[#3f3f46]'}`}
+                                    />
                                 </div>
                             </div>
                         </div>

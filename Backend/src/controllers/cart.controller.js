@@ -9,241 +9,452 @@ import {validatePaymentVerification} from "razorpay/dist/utils/razorpay-utils.js
 
 
 
-// export const addToCart = async(req,res)=>{
+export const addToCart = async(req,res)=>{
 
-//     console.log("========== ADD TO CART ==========");
-
-//         console.log("REQ PARAMS:", req.params);
-//         console.log("REQ BODY:", req.body);
-
-
-//     const {productId,variantId} = req.params;
-//     const {quantity = 1} = req.body;
-
-    
-//         console.log("PRODUCT ID:", productId);
-//         console.log("VARIANT ID:", variantId);
-//         console.log("QUANTITY:", quantity);
-
-//    const product = await productModel.findOne({
-//         _id:productId,
-//         "variants._id" : variantId
-//     })
-
-//     console.log("PRODUCT FOUND:", product);
-//      if(!product){
-//         return res.status(404).json({
-//             message:"product or variant not found",
-//             success:false
-//         })
-//     }
-
-//     const stock = await stockVariant(productId,variantId)
-
-//     const cart = (await cartModel.findOne({user: req.user._id})) || (await cartModel.create(
-//         {user:req.user._id, items: []}
-//     ))
-
-//     const isProductAlreadyCart = cart.items.some(item => item.product.toString() === productId && 
-//     (item.variants?.toString() === variantId || item.variant?.toString() === variantId))
-
-//     if(isProductAlreadyCart){
-//          const cartItem = cart.items.find(item => item.product.toString() === productId && (item.variants?.toString() === variantId || item.variant?.toString() === variantId))
-//          const quantityInCart = cartItem ? cartItem.quantity : 0
-    
-//           if (quantityInCart + quantity > stock) {
-//             return res.status(400).json({
-//                 message: `Only ${stock} items left in stock. and you already have ${quantityInCart} items in your cart`,
-//                 success: false
-//             })
-//         }
-//         await cartModel.findOneAndUpdate(
-//             {
-//                 user: req.user._id,
-//                 "items.product": productId,
-//                 $or: [{ "items.variants": variantId }, { "items.variant": variantId }]
-//             },
-//             {$inc:{"items.$.quantity":quantity}},
-//             {new:true}
-//         )
-
-//         return res.status(200).json({
-//             message:"cart updated successfully",
-//             success: true
-//         })
-//     }
-//     if(quantity> stock){
-//         return res.status(400).json({
-//             message:`Only ${stock} items left in stock`,
-//             success: false
-//         })
-//     }
-
-//     const variant = product.variants.id(variantId);
-
-// if (!variant) {
-//     return res.status(404).json({
-//         message: "Variant not found",
-//         success: false
-//     });
-// }
-
-//     cart.items.push({
-//         product: productId,
-//         variants: variantId,
-//         quantity,
-//         price:variant.price
-//     })
-
-//     await cart.save()
-
-//     return res.status(200).json({
-//         message:"Product added successfully",
-//         success:true
-//     })
-// }
-
-export const addToCart = async (req, res) => {
-    try {
-        console.log("========== ADD TO CART ==========");
+    console.log("========== ADD TO CART ==========");
 
         console.log("REQ PARAMS:", req.params);
         console.log("REQ BODY:", req.body);
 
-        const { productId, variantId } = req.params;
-        const { quantity = 1 } = req.body;
 
-        console.log("PRODUCT ID:", productId);
-        console.log("VARIANT ID:", variantId);
-        console.log("QUANTITY:", quantity);
+    const {productId,variantId} = req.params;
+    const {quantity = 1} = req.body;
 
-        // 1. Validate quantity
-        if (!Number.isInteger(quantity) || quantity < 1) {
+    console.log("PRODUCT ID:", productId);
+console.log("VARIANT ID:", variantId);
+console.log("QUANTITY:", quantity);
+    
+    console.log("🔥 BEFORE FIND PRODUCT");
+console.log("productId =", productId);
+console.log("typeof productId =", typeof productId);
+console.log("variantId =", variantId);
+console.log("typeof variantId =", typeof variantId);
+
+   const product = await productModel.findOne({
+        _id:productId,
+        "variants._id" : variantId
+    })
+
+    console.log("PRODUCT FOUND:", product);
+     if(!product){
+        return res.status(404).json({
+            message:"product or variant not found",
+            success:false
+        })
+    }
+
+    const stock = await stockVariant(productId,variantId)
+
+    const cart = (await cartModel.findOne({user: req.user._id})) || (await cartModel.create(
+        {user:req.user._id, items: []}
+    ))
+
+    const isProductAlreadyCart = cart.items.some(item => item.product.toString() === productId && 
+    (item.variants?.toString() === variantId || item.variant?.toString() === variantId))
+
+    if(isProductAlreadyCart){
+         const cartItem = cart.items.find(item => item.product.toString() === productId && (item.variants?.toString() === variantId || item.variant?.toString() === variantId))
+         const quantityInCart = cartItem ? cartItem.quantity : 0
+    
+          if (quantityInCart + quantity > stock) {
             return res.status(400).json({
-                message: "Quantity must be at least 1",
+                message: `Only ${stock} items left in stock. and you already have ${quantityInCart} items in your cart`,
                 success: false
-            });
+            })
         }
-
-        // 2. Find product containing this variant
-        const product = await productModel.findOne({
-            _id: productId,
-            "variants._id": variantId
-        });
-
-        console.log("PRODUCT FOUND:", product);
-
-        if (!product) {
-            return res.status(404).json({
-                message: "Product or variant not found",
-                success: false
-            });
-        }
-
-        // 3. Find the exact variant
-        const variant = product.variants.id(variantId);
-
-        console.log("VARIANT FOUND:", variant);
-
-        if (!variant) {
-            return res.status(404).json({
-                message: "Variant not found",
-                success: false
-            });
-        }
-
-        // 4. Get stock directly from the variant
-        const stock = variant.stock;
-
-        console.log("VARIANT STOCK:", stock);
-        console.log("REQUESTED QUANTITY:", quantity);
-
-        // 5. Get existing cart or create one
-        const cart =
-            (await cartModel.findOne({ user: req.user._id })) ||
-            (await cartModel.create({
+        await cartModel.findOneAndUpdate(
+            {
                 user: req.user._id,
-                items: []
-            }));
-
-        // 6. Find existing cart item
-        const cartItem = cart.items.find(
-            item =>
-                item.product.toString() === productId &&
-                (
-                    item.variants?.toString() === variantId ||
-                    item.variant?.toString() === variantId
-                )
-        );
-
-        // 7. Existing item
-        if (cartItem) {
-            const quantityInCart = cartItem.quantity;
-            const newQuantity = quantityInCart + quantity;
-
-            console.log("QUANTITY IN CART:", quantityInCart);
-            console.log("NEW QUANTITY:", newQuantity);
-
-            // Never allow cart quantity > stock
-            if (newQuantity > stock) {
-                return res.status(400).json({
-                    message: `Only ${stock} items left in stock. You already have ${quantityInCart} in your cart.`,
-                    success: false
-                });
-            }
-
-            cartItem.quantity = newQuantity;
-
-            // Make sure price is the variant price
-            cartItem.price = {
-                amount: variant.price.amount,
-                currency: variant.price.currency
-            };
-
-            await cart.save();
-
-            return res.status(200).json({
-                message: "Cart updated successfully",
-                success: true
-            });
-        }
-
-        // 8. New item
-        if (quantity > stock) {
-            return res.status(400).json({
-                message: `Only ${stock} items left in stock`,
-                success: false
-            });
-        }
-
-        // 9. Add new item
-        cart.items.push({
-            product: productId,
-            variants: variantId,
-            quantity,
-            price: {
-                amount: variant.price.amount,
-                currency: variant.price.currency
-            }
-        });
-
-        await cart.save();
+                "items.product": productId,
+                $or: [{ "items.variants": variantId }, { "items.variant": variantId }]
+            },
+            {$inc:{"items.$.quantity":quantity}},
+            {new:true}
+        )
 
         return res.status(200).json({
-            message: "Product added successfully",
+            message:"cart updated successfully",
             success: true
-        });
-
-    } catch (error) {
-        console.error("ADD TO CART ERROR:", error);
-
-        return res.status(500).json({
-            message: "Failed to add product to cart",
-            success: false,
-            error: error.message
-        });
+        })
     }
-};
+    if(quantity> stock){
+        return res.status(400).json({
+            message:`Only ${stock} items left in stock`,
+            success: false
+        })
+    }
+
+    const variant = product.variants.id(variantId);
+
+if (!variant) {
+    return res.status(404).json({
+        message: "Variant not found",
+        success: false
+    });
+}
+
+    cart.items.push({
+        product: productId,
+        variants: variantId,
+        quantity,
+        price:variant.price
+    })
+
+    await cart.save()
+
+    return res.status(200).json({
+        message:"Product added successfully",
+        success:true
+    })
+}
+
+// export const addToCart = async (req, res) => {
+//     try {
+//         console.log("========== ADD TO CART ==========");
+
+//         console.log("REQ PARAMS:", req.params);
+//         console.log("REQ BODY:", req.body);
+
+//         const { productId, variantId } = req.params;
+//         const { quantity = 1 } = req.body;
+
+//         console.log("PRODUCT ID:", productId);
+//         console.log("VARIANT ID:", variantId);
+//         console.log("QUANTITY:", quantity);
+
+//         // 1. Validate quantity
+//         if (!Number.isInteger(quantity) || quantity < 1) {
+//             return res.status(400).json({
+//                 message: "Quantity must be at least 1",
+//                 success: false
+//             });
+//         }
+
+//         // 2. Find product containing this variant
+//         const product = await productModel.findOne({
+//             _id: productId,
+//             "variants._id": variantId
+//         });
+
+//         console.log("PRODUCT FOUND:", product);
+
+//         if (!product) {
+//             return res.status(404).json({
+//                 message: "Product or variant not found",
+//                 success: false
+//             });
+//         }
+
+//         // 3. Find the exact variant
+//         const variant = product.variants.id(variantId);
+
+//         console.log("VARIANT FOUND:", variant);
+
+//         if (!variant) {
+//             return res.status(404).json({
+//                 message: "Variant not found",
+//                 success: false
+//             });
+//         }
+
+//         // 4. Get stock directly from the variant
+//         const stock = variant.stock;
+
+//         console.log("VARIANT STOCK:", stock);
+//         console.log("REQUESTED QUANTITY:", quantity);
+
+//         // 5. Get existing cart or create one
+//         const cart =
+//             (await cartModel.findOne({ user: req.user._id })) ||
+//             (await cartModel.create({
+//                 user: req.user._id,
+//                 items: []
+//             }));
+
+//         // 6. Find existing cart item
+//         const cartItem = cart.items.find(
+//             item =>
+//                 item.product.toString() === productId &&
+//                 (
+//                     item.variants?.toString() === variantId ||
+//                     item.variant?.toString() === variantId
+//                 )
+//         );
+
+//         // 7. Existing item
+//         if (cartItem) {
+//             const quantityInCart = cartItem.quantity;
+//             const newQuantity = quantityInCart + quantity;
+
+//             console.log("QUANTITY IN CART:", quantityInCart);
+//             console.log("NEW QUANTITY:", newQuantity);
+
+//             // Never allow cart quantity > stock
+//             if (newQuantity > stock) {
+//                 return res.status(400).json({
+//                     message: `Only ${stock} items left in stock. You already have ${quantityInCart} in your cart.`,
+//                     success: false
+//                 });
+//             }
+
+//             cartItem.quantity = newQuantity;
+
+//             // Make sure price is the variant price
+//             cartItem.price = {
+//                 amount: variant.price.amount,
+//                 currency: variant.price.currency
+//             };
+
+//             await cart.save();
+
+//             return res.status(200).json({
+//                 message: "Cart updated successfully",
+//                 success: true
+//             });
+//         }
+
+//         // 8. New item
+//         if (quantity > stock) {
+//             return res.status(400).json({
+//                 message: `Only ${stock} items left in stock`,
+//                 success: false
+//             });
+//         }
+
+//         // 9. Add new item
+//         cart.items.push({
+//             product: productId,
+//             variants: variantId,
+//             quantity,
+//             price: {
+//                 amount: variant.price.amount,
+//                 currency: variant.price.currency
+//             }
+//         });
+
+//         await cart.save();
+
+//         return res.status(200).json({
+//             message: "Product added successfully",
+//             success: true
+//         });
+
+//     } catch (error) {
+//         console.error("ADD TO CART ERROR:", error);
+
+//         return res.status(500).json({
+//             message: "Failed to add product to cart",
+//             success: false,
+//             error: error.message
+//         });
+//     }
+// };
+
+// export const addToCart = async (req, res) => {
+//     try {
+//         console.log("========== ADD TO CART ==========");
+
+//         const { productId, variantId } = req.params;
+//         const { quantity = 1 } = req.body;
+
+//         console.log("PRODUCT ID:", productId);
+//         console.log("VARIANT ID:", variantId);
+//         console.log("QUANTITY:", quantity);
+
+//         // 1. Validate quantity
+//         if (!Number.isInteger(quantity) || quantity < 1) {
+//             return res.status(400).json({
+//                 message: "Quantity must be at least 1",
+//                 success: false
+//             });
+//         }
+
+//         // 2. Find product
+//         const product = await productModel.findById(productId);
+
+//         console.log("PRODUCT FOUND:", product?._id);
+
+//         if (!product) {
+//             return res.status(404).json({
+//                 message: "Product not found",
+//                 success: false
+//             });
+//         }
+
+//         let selectedVariant = null;
+//         let stock;
+//         let itemPrice;
+
+//         // ==========================================
+//         // 3. BASE PRODUCT
+//         // ==========================================
+
+//         if (!variantId || variantId === "null" || variantId === "undefined") {
+
+//             console.log("🟢 BASE PRODUCT SELECTED");
+
+//             stock = product.stock;
+
+//             itemPrice = {
+//                 amount: product.price.amount,
+//                 currency: product.price.currency
+//             };
+
+//             console.log("BASE STOCK:", stock);
+//             console.log("BASE PRICE:", itemPrice);
+
+//         }
+
+//         // ==========================================
+//         // 4. VARIANT PRODUCT
+//         // ==========================================
+
+//         else {
+
+//             console.log("🔵 VARIANT SELECTED");
+
+//             selectedVariant = product.variants.id(variantId);
+
+//             console.log("VARIANT FOUND:", selectedVariant);
+
+//             if (!selectedVariant) {
+//                 return res.status(404).json({
+//                     message: "Variant not found",
+//                     success: false
+//                 });
+//             }
+
+//             stock = selectedVariant.stock;
+
+//             itemPrice = {
+//                 amount: selectedVariant.price.amount,
+//                 currency: selectedVariant.price.currency
+//             };
+
+//             console.log("VARIANT STOCK:", stock);
+//             console.log("VARIANT PRICE:", itemPrice);
+//         }
+
+//         // ==========================================
+//         // 5. Validate stock
+//         // ==========================================
+
+//         if (stock <= 0) {
+//             return res.status(400).json({
+//                 message: "Product is out of stock",
+//                 success: false
+//             });
+//         }
+
+//         if (quantity > stock) {
+//             return res.status(400).json({
+//                 message: `Only ${stock} items left in stock`,
+//                 success: false
+//             });
+//         }
+
+//         // ==========================================
+//         // 6. Get or create cart
+//         // ==========================================
+
+//         const cart =
+//             (await cartModel.findOne({ user: req.user._id })) ||
+//             (await cartModel.create({
+//                 user: req.user._id,
+//                 items: []
+//             }));
+
+//         // ==========================================
+//         // 7. Find existing cart item
+//         // ==========================================
+
+//         const cartItem = cart.items.find(item => {
+
+//             const sameProduct =
+//                 item.product.toString() === productId;
+
+//             const itemVariantId =
+//                 item.variants?.toString() || null;
+
+//             const currentVariantId =
+//                 selectedVariant?._id?.toString() || null;
+
+//             return (
+//                 sameProduct &&
+//                 itemVariantId === currentVariantId
+//             );
+//         });
+
+//         console.log("EXISTING CART ITEM:", cartItem);
+
+//         // ==========================================
+//         // 8. Existing item
+//         // ==========================================
+
+//         if (cartItem) {
+
+//             const newQuantity =
+//                 cartItem.quantity + quantity;
+
+//             console.log("OLD QUANTITY:", cartItem.quantity);
+//             console.log("NEW QUANTITY:", newQuantity);
+//             console.log("AVAILABLE STOCK:", stock);
+
+//             if (newQuantity > stock) {
+//                 return res.status(400).json({
+//                     message: `Only ${stock} items left in stock`,
+//                     success: false
+//                 });
+//             }
+
+//             cartItem.quantity = newQuantity;
+
+//             cartItem.price = itemPrice;
+
+//             await cart.save();
+
+//             return res.status(200).json({
+//                 message: "Cart updated successfully",
+//                 success: true
+//             });
+//         }
+
+//         // ==========================================
+//         // 9. New cart item
+//         // ==========================================
+
+//         cart.items.push({
+//             product: productId,
+
+//             // Base product → null
+//             // Variant → variant ObjectId
+//             variants: selectedVariant?._id || null,
+
+//             quantity,
+
+//             price: itemPrice
+//         });
+
+//         await cart.save();
+
+//         console.log("✅ ITEM ADDED TO CART");
+
+//         return res.status(200).json({
+//             message: "Product added successfully",
+//             success: true
+//         });
+
+//     } catch (error) {
+
+//         console.error("❌ ADD TO CART ERROR:", error);
+
+//         return res.status(500).json({
+//             message: "Failed to add product to cart",
+//             success: false,
+//             error: error.message
+//         });
+//     }
+// };
 export const getCart = async(req,res)=>{
 
     const user = req.user
@@ -264,11 +475,7 @@ export const getCart = async(req,res)=>{
 export const incrementCartItemQuantity = async(req,res)=>{
     const {productId,variantId} = req.params
 
-    console.log("🔥 PRODUCT ID:", productId);
-console.log("🔥 VARIANT ID:", variantId);
-console.log("🔥 STOCK:", stock);
-console.log("🔥 CART QUANTITY:", itemQuantityInCart);
-console.log("🔥 NEXT QUANTITY:", itemQuantityInCart + 1);
+    
 
     const product = await productModel.findOne({
         _id: productId,
@@ -294,6 +501,12 @@ console.log("🔥 NEXT QUANTITY:", itemQuantityInCart + 1);
     const stock = await stockVariant(productId,variantId)
 
     const itemQuantityInCart = cart.items.find(item=> item.product.toString() === productId && (item.variants?.toString() === variantId || item.variant?.toString() === variantId))?.quantity || 0
+
+    console.log("🔥 PRODUCT ID:", productId);
+console.log("🔥 VARIANT ID:", variantId);
+console.log("🔥 STOCK:", stock);
+console.log("🔥 CART QUANTITY:", itemQuantityInCart);
+console.log("🔥 NEXT QUANTITY:", itemQuantityInCart + 1);
 
     if (itemQuantityInCart + 1 > stock){
         return res.status(400).json({
@@ -347,7 +560,7 @@ export const createOrderController = async(req,res)=>{
        
         title: item.product.title,
         productId: item.product._id,
-        variantId: item.variant,
+        variantId: item.variants,
         quantity: item.quantity,
         images: item.product.images,
         description: item.product.description,

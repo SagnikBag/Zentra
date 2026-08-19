@@ -23,6 +23,45 @@ export const addItem = async ({ productId, variantId, quantity }) => {
 
 }
 
+// export const addItem = async ({ productId, variantId, quantity }) => {
+
+//     console.log("ADD ITEM:", {
+//         productId,
+//         variantId,
+//         quantity
+//     });
+
+//     try {
+
+//         const response = await cartApiInstance.post(
+//             `/add/${productId}/${variantId}`,
+//             {
+//                 quantity: quantity || 1
+//             }
+//         );
+
+//         console.log("✅ ADD ITEM RESPONSE:", response.data);
+
+//         return response.data;
+
+//     } catch (error) {
+
+//         console.log("❌ ADD ITEM ERROR STATUS:", error.response?.status);
+
+//         console.log(
+//             "❌ ADD ITEM ERROR DATA:",
+//             error.response?.data
+//         );
+
+//         console.log(
+//             "❌ ADD ITEM ERROR MESSAGE:",
+//             error.message
+//         );
+
+//         throw error;
+//     }
+// };
+
 export const getCart = async () => {
     const response = await cartApiInstance.get('/')
 

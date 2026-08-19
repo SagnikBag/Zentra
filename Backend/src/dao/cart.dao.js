@@ -1,87 +1,204 @@
+// import cartModel from "../model/cart.model.js";
+// import mongoose from "mongoose";
+
+// export async function getCartDetails(userId){
+
+//         let cart = (await cartModel.aggregate(
+//   [
+//     {
+//       $match: {
+//         user: new mongoose.Types.ObjectId(userId)
+//       }
+//     },
+//     { $unwind: { path: '$items' } },
+//     {
+//       $lookup: {
+//         from: 'products',
+//         localField: 'items.product',
+//         foreignField: '_id',
+//         as: 'items.product'
+//       }
+//     },
+//     { $unwind: { path: '$items.product' } },
+//     {
+//       $unwind: {
+//         path: '$items.product.variants',
+//         preserveNullAndEmptyArrays: true
+//       }
+//     },
+//     {
+//       $match: {
+//         $expr: {
+//           $or: [
+//             { $eq: ['$items.variants', '$items.product.variants._id'] },
+//             { $eq: ['$items.variant', '$items.product.variants._id'] },
+//             { $eq: [{ $ifNull: ['$items.variants', '$items.variant'] }, null] },
+//             { $eq: ['$items.product.variants', null] }
+//           ]
+//         }
+//       }
+//     },
+//     {
+//       $addFields: {
+//         'items.price': {
+//           $ifNull: ['$items.price', '$items.product.variants.price', '$items.product.price']
+//         },
+//         itemPrice: {
+//           price: {
+//             $multiply: [
+//               '$items.quantity',
+//               {
+//                 $ifNull: [
+//                   '$items.product.variants.price.amount',
+//                   '$items.product.price.amount',
+//                   '$items.price.amount',
+//                   0
+//                 ]
+//               }
+//             ]
+//           },
+//           currency: {
+//             $ifNull: [
+//               '$items.product.variants.price.currency',
+//               '$items.product.price.currency',
+//               '$items.price.currency',
+//               'INR'
+//             ]
+//           }
+//         }
+//       }
+//     },
+//     {
+//       $group: {
+//         _id: '$_id',
+//         user: { $first: '$user' },
+//         totalPrice: { $sum: '$itemPrice.price' },
+//         currency: { $first: '$itemPrice.currency' },
+//         items: { $push: '$items' }
+//       }
+//     }
+//   ],
+//   { maxTimeMS: 60000, allowDiskUse: true }
+// ))[0];
+
+//   return cart;
+
+// }
+
+
 import cartModel from "../model/cart.model.js";
 import mongoose from "mongoose";
 
-export async function getCartDetails(userId){
+export async function getCartDetails(userId) {
 
-        let cart = (await cartModel.aggregate(
-  [
-    {
-      $match: {
-        user: new mongoose.Types.ObjectId(userId)
-      }
-    },
-    { $unwind: { path: '$items' } },
-    {
-      $lookup: {
-        from: 'products',
-        localField: 'items.product',
-        foreignField: '_id',
-        as: 'items.product'
-      }
-    },
-    { $unwind: { path: '$items.product' } },
-    {
-      $unwind: {
-        path: '$items.product.variants',
-        preserveNullAndEmptyArrays: true
-      }
-    },
-    {
-      $match: {
-        $expr: {
-          $or: [
-            { $eq: ['$items.variants', '$items.product.variants._id'] },
-            { $eq: ['$items.variant', '$items.product.variants._id'] },
-            { $eq: [{ $ifNull: ['$items.variants', '$items.variant'] }, null] },
-            { $eq: ['$items.product.variants', null] }
-          ]
-        }
-      }
-    },
-    {
-      $addFields: {
-        'items.price': {
-          $ifNull: ['$items.price', '$items.product.variants.price', '$items.product.price']
+    const cart = await cartModel.aggregate([
+        {
+            $match: {
+                user: new mongoose.Types.ObjectId(userId)
+            }
         },
-        itemPrice: {
-          price: {
-            $multiply: [
-              '$items.quantity',
-              {
-                $ifNull: [
-                  '$items.product.variants.price.amount',
-                  '$items.product.price.amount',
-                  '$items.price.amount',
-                  0
-                ]
-              }
-            ]
-          },
-          currency: {
-            $ifNull: [
-              '$items.product.variants.price.currency',
-              '$items.product.price.currency',
-              '$items.price.currency',
-              'INR'
-            ]
-          }
+
+        {
+            $unwind: "$items"
+        },
+
+        {
+            $lookup: {
+                from: "products",
+                localField: "items.product",
+                foreignField: "_id",
+                as: "product"
+            }
+        },
+
+        {
+            $unwind: "$product"
+        },
+
+        // Find ONLY the selected variant
+        {
+            $addFields: {
+                selectedVariant: {
+                    $arrayElemAt: [
+                        {
+                            $filter: {
+                                input: "$product.variants",
+                                as: "variant",
+                                cond: {
+                                    $eq: [
+                                        "$$variant._id",
+                                        "$items.variants"
+                                    ]
+                                }
+                            }
+                        },
+                        0
+                    ]
+                }
+            }
+        },
+
+        // Put selected variant inside product.variants
+        {
+            $addFields: {
+                "items.product.variants": "$selectedVariant"
+            }
+        },
+
+        // Calculate item price
+        {
+            $addFields: {
+                itemPrice: {
+                    $multiply: [
+                        "$items.quantity",
+                        {
+                            $ifNull: [
+                                "$items.price.amount",
+                                "$selectedVariant.price.amount",
+                                "$product.price.amount",
+                                0
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+
+        // Put product back inside item
+        {
+            $addFields: {
+                "items.product": "$product"
+            }
+        },
+
+        {
+            $group: {
+                _id: "$_id",
+
+                user: {
+                    $first: "$user"
+                },
+
+                totalPrice: {
+                    $sum: "$itemPrice"
+                },
+
+                currency: {
+                    $first: {
+                        $ifNull: [
+                            "$items.price.currency",
+                            "INR"
+                        ]
+                    }
+                },
+
+                items: {
+                    $push: "$items"
+                }
+            }
         }
-      }
-    },
-    {
-      $group: {
-        _id: '$_id',
-        user: { $first: '$user' },
-        totalPrice: { $sum: '$itemPrice.price' },
-        currency: { $first: '$itemPrice.currency' },
-        items: { $push: '$items' }
-      }
-    }
-  ],
-  { maxTimeMS: 60000, allowDiskUse: true }
-))[0];
+    ]);
 
-  return cart;
-
+    return cart[0] || null;
 }
 
