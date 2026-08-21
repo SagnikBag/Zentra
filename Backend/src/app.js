@@ -21,6 +21,7 @@ app.use(cors({
     methods: ["GET","POST","PUT","DELETE"],
     credentials: true
 }))
+app.use(express.static('public'));
 app.use(passport.initialize());
 passport.use(new GoogleStrategy({
     clientID:config.GOOGLE_CLIENT_ID,
