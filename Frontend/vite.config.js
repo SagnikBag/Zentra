@@ -7,6 +7,9 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss()],
+  build: {
+    chunkSizeWarningLimit: 1000,
+  },
   server: {
     proxy: {
       "/api": {
