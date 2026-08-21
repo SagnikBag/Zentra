@@ -91,7 +91,7 @@ export default function Footer() {
                 {/* Bottom row */}
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-8 border-t border-[#27272a]">
                     <p className="text-xs text-[#52525b]">
-                        © {year} Zentra. All rights reserved.
+                        © {year} sagnikbag. All rights reserved.
                     </p>
                     <div className="flex items-center gap-6">
                         <a href="#" className="text-xs text-[#52525b] hover:text-[#a1a1aa] transition-colors duration-200">Privacy</a>
