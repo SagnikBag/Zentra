@@ -53,7 +53,7 @@ export function Login() {
                 </div>
                 <div className="relative z-10 my-auto max-w-[480px]">
                     <span className="text-[#f59e0b] text-[10px] font-mono uppercase tracking-widest bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-3 py-1 rounded-full">
-                        Private Beta Access
+                        Private Beta Access.
                     </span>
                     <h2 className="text-4xl xl:text-5xl font-semibold text-[#fafafa] tracking-tight mt-6 mb-8 leading-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                         Institutional-Grade Digital Trade Infrastructure.
