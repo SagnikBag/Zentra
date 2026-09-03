@@ -56,7 +56,7 @@ export function Login() {
                         Private Beta Access
                     </span>
                     <h2 className="text-4xl xl:text-5xl font-semibold text-[#fafafa] tracking-tight mt-6 mb-8 leading-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
-                        Institutional-Grade Digital Trade Infrastructure.
+                        Institutional-Grade Digital Trade Infrastructure
                     </h2>
                     <div className="flex flex-col gap-6">
                         <div className="flex gap-4">
