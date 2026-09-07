@@ -97,7 +97,7 @@ export function Login() {
                             Sign in to Your Account
                         </h1>
                         <p className="text-[#71717a] text-sm leading-relaxed">
-                            Access your dashboard and manage your digital trade profile
+                            Access your dashboard and manage your digital trade profile.
                         </p>
                     </div>
                     <div className="bg-[#18181b]/60 backdrop-blur-xl border border-[#27272a] p-6 md:p-8 rounded-2xl shadow-2xl">
